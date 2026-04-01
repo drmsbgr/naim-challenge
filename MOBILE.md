@@ -18,9 +18,9 @@
 
 | Metric            | Value |
 | ----------------- | ----- |
-| Total Iterations  | 1     |
-| Total Weight (kg) | 5     |
-| Total Time (min)  | 15    |
+| Total Iterations  | 2     |
+| Total Weight (kg) | 20    |
+| Total Time (min)  | 25    |
 | Failed Attempts   | 0     |
 
 ---
@@ -63,24 +63,28 @@ Stitch üzerinde tasarladığım Carbon Core AI ana ekranını (Shell) React Nat
 
 | Field     | Value |
 | --------- | ----- |
-| Feature   |       |
-| Weight    |       |
-| Tool Used |       |
-| Time      |       |
-| Attempts  |       |
-| Status    |       |
+| Feature   | `Multi-Screen Navigation (Tab Navigator)` |
+| Weight    | `15 kg` |
+| Tool Used | `Antigravity` |
+| Time      | `10 min` |
+| Attempts  | `1` |
+| Status    | ✅ Success |
 
 **Prompt given to AI:**
 
 ```
-
+Planı uygula. (Faz 1 - Iteration 2: Navigation)
 ```
 
 **What happened:**
 
-- **Screenshot:**
+- `@react-navigation/native` ve alt bağımlılıkları yüklendi.
+- `App.js` refactor edilerek `HomeScreen` bileşene ayrıldı ve `History`, `Projects`, `Profile` placeholder ekranları eklendi.
+- `Tab.Navigator` uygulamaya entegre edildi. Mevcut tasarımda olan bottom nav bar tamamen `tabBar` component olarak bağlandı ve aktif sekmenin (Home vs History) algılanması (focused) sağlandı.
 
-  **Commit:**
+**Screenshot:** `assets/iteration2_history_tab.png`
+
+**Commit:** `[NAIM: Carbon Core AI] Added Multi-Screen Navigation - 15kg`
 
   ***
 

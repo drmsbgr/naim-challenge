@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import { NavigationContainer } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 const { width } = Dimensions.get('window');
 
@@ -155,23 +157,8 @@ function ActionCard({ label, category, icon, iconType = 'ionicons' }) {
   );
 }
 
-// ─── Bottom Nav Item ──────────────────────────────────────────────────
-function NavItem({ icon, active = false, label }) {
-  return (
-    <TouchableOpacity style={styles.navItem} activeOpacity={0.7}>
-      {active ? (
-        <View style={styles.navActive}>
-          <Ionicons name={icon} size={22} color="#FFFFFF" />
-        </View>
-      ) : (
-        <Ionicons name={icon} size={22} color={COLORS.outlineVariant} />
-      )}
-    </TouchableOpacity>
-  );
-}
-
-// ─── Main App ─────────────────────────────────────────────────────────
-export default function App() {
+// ─── Home Screen ───────────────────────────────────────────────────────
+function HomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
@@ -245,15 +232,77 @@ export default function App() {
           </TouchableOpacity>
         </View>
       </View>
-
-      {/* ── Bottom Navigation ── */}
-      <View style={styles.bottomNav}>
-        <NavItem icon="home" active />
-        <NavItem icon="time-outline" />
-        <NavItem icon="folder-outline" />
-        <NavItem icon="person-outline" />
-      </View>
     </SafeAreaView>
+  );
+}
+
+// ─── Placeholder Screens ──────────────────────────────────────────────
+function HistoryScreen() {
+  return (
+    <View style={styles.placeholderContainer}>
+      <Text style={styles.placeholderText}>History Screen</Text>
+    </View>
+  );
+}
+
+function ProjectsScreen() {
+  return (
+    <View style={styles.placeholderContainer}>
+      <Text style={styles.placeholderText}>Projects Screen</Text>
+    </View>
+  );
+}
+
+function ProfileScreen() {
+  return (
+    <View style={styles.placeholderContainer}>
+      <Text style={styles.placeholderText}>Profile Screen</Text>
+    </View>
+  );
+}
+
+const Tab = createBottomTabNavigator();
+
+// ─── Main App ─────────────────────────────────────────────────────────
+export default function App() {
+  return (
+    <NavigationContainer>
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          headerShown: false,
+          tabBarShowLabel: false,
+          tabBarStyle: styles.bottomNav,
+          tabBarIcon: ({ focused }) => {
+            let iconName;
+
+            if (route.name === 'Home') {
+              iconName = focused ? 'home' : 'home-outline';
+            } else if (route.name === 'History') {
+              iconName = focused ? 'time' : 'time-outline';
+            } else if (route.name === 'Projects') {
+              iconName = focused ? 'folder' : 'folder-outline';
+            } else if (route.name === 'Profile') {
+              iconName = focused ? 'person' : 'person-outline';
+            }
+
+            return (
+              <View style={focused ? styles.navActive : styles.navItem}>
+                <Ionicons
+                  name={iconName}
+                  size={22}
+                  color={focused ? "#FFFFFF" : COLORS.outlineVariant}
+                />
+              </View>
+            );
+          },
+        })}
+      >
+        <Tab.Screen name="Home" component={HomeScreen} />
+        <Tab.Screen name="History" component={HistoryScreen} />
+        <Tab.Screen name="Projects" component={ProjectsScreen} />
+        <Tab.Screen name="Profile" component={ProfileScreen} />
+      </Tab.Navigator>
+    </NavigationContainer>
   );
 }
 
@@ -268,6 +317,17 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 20,
+  },
+  placeholderContainer: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  placeholderText: {
+    color: COLORS.onSurfaceVariant,
+    fontSize: 18,
+    ...FONTS.medium,
   },
 
   // ── Top Bar ──
@@ -440,18 +500,24 @@ const styles = StyleSheet.create({
 
   // ── Bottom Nav ──
   bottomNav: {
+    backgroundColor: COLORS.background,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.surfaceContainerLow,
+    height: 60,
+    paddingTop: 8,
+    paddingBottom: 8,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingBottom: 8,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.surfaceContainerLow,
+    elevation: 0,
+    shadowOpacity: 0,
   },
   navItem: {
     alignItems: 'center',
     justifyContent: 'center',
     padding: 8,
+    width: 40,
+    height: 40,
   },
   navActive: {
     width: 40,
