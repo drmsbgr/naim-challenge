@@ -20,6 +20,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import CarbonHighlighter from './components/CarbonHighlighter';
+import { sendMessageToLLM, initChat } from './services/LLMService';
 
 const { width } = Dimensions.get('window');
 
@@ -203,18 +204,33 @@ function ChatScreen({ navigation }) {
       isCode: true
     }
   ]);
+  const [isTyping, setIsTyping] = useState(false);
 
-  const handleSend = (text) => {
+  useEffect(() => {
+    initChat();
+  }, []);
+
+  const handleSend = async (text) => {
     const newMessage = { id: Date.now().toString(), text, isUser: true };
     setMessages((prev) => [...prev, newMessage]);
+    setIsTyping(true);
 
-    // Mock AI response for now
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        { id: (Date.now() + 1).toString(), text: 'Bu örnek bir Carbon çıktı bloğudur:\n\nher (tanıt i = 0; i < 5; i++) {\n    yazdır(i);\n}', isUser: false, isCode: true },
-      ]);
-    }, 1000);
+    const responseText = await sendMessageToLLM(text);
+    
+    // Remove triple backticks if we want, or just let highlighter parse it.
+    // For simplicity, let's clean up ```carbon and ``` from the string cleanly.
+    let cleanText = responseText.replace(/```carbon/gi, '').replace(/```/g, '').trim();
+
+    setIsTyping(false);
+    setMessages((prev) => [
+      ...prev,
+      { 
+        id: (Date.now() + 1).toString(), 
+        text: cleanText, 
+        isUser: false, 
+        isCode: true // Always treat AI response as potential code for highlighting
+      },
+    ]);
   };
 
   return (
@@ -250,6 +266,11 @@ function ChatScreen({ navigation }) {
             </View>
           )}
         />
+        {isTyping && (
+          <View style={[styles.messageBubble, styles.aiBubble, { width: 100, alignItems: 'center' }]}>
+            <Text style={styles.messageText}>Düşünüyor...</Text>
+          </View>
+        )}
         <ChatInput onSend={handleSend} />
       </KeyboardAvoidingView>
     </SafeAreaView>

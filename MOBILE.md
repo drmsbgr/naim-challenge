@@ -18,9 +18,9 @@
 
 | Metric            | Value |
 | ----------------- | ----- |
-| Total Iterations  | 4     |
-| Total Weight (kg) | 45    |
-| Total Time (min)  | 55    |
+| Total Iterations  | 5     |
+| Total Weight (kg) | 65    |
+| Total Time (min)  | 70    |
 | Failed Attempts   | 0     |
 
 ---
@@ -150,6 +150,37 @@ Planı uygula. (Faz 1 - Iteration 4: Carbon Syntax Highlighting)
 **Screenshot:** `assets/iteration4_syntax_highlight.png`
 
 **Commit:** `[NAIM: Carbon Core AI] Added Carbon Syntax Highlighting - 15kg`
+
+---
+
+### 🏋️ Iteration 5
+
+| Field     | Value |
+| --------- | ----- |
+| Feature   | `AI Motoru (LLM) & Grammar Oracle Bağlantısı` |
+| Weight    | `20 kg` |
+| Tool Used | `Antigravity + Google Gemini API` |
+| Time      | `15 min` |
+| Attempts  | `1` |
+| Status    | ✅ Success |
+
+**Prompt given to AI:**
+
+```
+adını güncelle, hızlı modeli kullan ve ücretsiz için ayrılan sınırı aşmayacak şekilde ayarla
+```
+
+**What happened:**
+
+- `.env` içerisindeki key, React Native ortamında erişilebilmesi için `EXPO_PUBLIC_GEMINI_API_KEY` olarak güncellendi.
+- `grammar.md` dosyası okunarak `utils/grammarSpec.js` içerisine gömüldü. Bu string, System Instruction olarak kullanıldı.
+- `@google/generative-ai` kütüphanesi yüklenip `gemini-2.5-flash` modeli ile `services/LLMService.js` yazıldı. Chat geçmişi `startChat` ile entegre edildi.
+- `App.js` içerisinde "Düşünüyor..." yüklenme animasyonu eklendi, modelin döndürdüğü kod blokları `CarbonHighlighter` içerisinden sorunsuzca ve doğru renklerle geçecek şekilde entegre edildi!
+- Local ortamda baştan sonra mock olmayan gerçek AI sohbeti ("1'den 5'e kadar döngü kur") sorulup test edildi. 
+
+**Screenshot:** `assets/iteration5_llm_response.png`
+
+**Commit:** `[NAIM: Carbon Core AI] Added Real Gemini LLM Integration - 20kg`
 
 ---
 
