@@ -42,6 +42,18 @@ Pick your lifts. Go in order or skip around — your call.
 
 ---
 
+## Carbon Core Special Lifts
+
+| Feature (Özellik)         | Weight (kg) | Description                                                               |
+| ------------------------- | ----------- | ------------------------------------------------------------------------- |
+| Carbon Syntax Highlighter | 15 kg       | `knowledge/grammar.md` kurallarına göre kodları renklendiren UI bileşeni. |
+| Interpreter Bridge        | 20 kg       | Yazılan Carbon kodunun .NET Runtime çıktısını simüle eden yapı.           |
+| Low-Level (x86/ARM) View  | 20 kg       | Carbon kodunun makine dili karşılığını gösteren analiz ekranı.            |
+| Turkish Grammar Oracle    | 25 kg       | Girilen kodun Carbon sözdizimine uygunluğunu denetleyen AI motoru.        |
+| Auto-Doc Generation       | 30 kg       | Uygulamanın kendi teknik dökümanını Carbon formatında üretmesi.           |
+
+---
+
 ## 🟣 Boss Level (25+ kg each)
 
 - [ ] AI agent that suggests next feature (meta!)
@@ -67,10 +79,10 @@ These are creative bonuses — extra weight for original ideas:
 
 ## 🎯 Weight Classes
 
-| Class | Total Weight | Level |
-|-------|-------------|-------|
-| Lightweight | 0 - 30 kg | Getting started |
-| Middleweight | 31 - 75 kg | Solid progress |
-| Heavyweight | 76 - 150 kg | Strong lifter |
+| Class             | Total Weight | Level              |
+| ----------------- | ------------ | ------------------ |
+| Lightweight       | 0 - 30 kg    | Getting started    |
+| Middleweight      | 31 - 75 kg   | Solid progress     |
+| Heavyweight       | 76 - 150 kg  | Strong lifter      |
 | Super Heavyweight | 151 - 250 kg | Serious competitor |
-| World Record | 250+ kg | Naim territory 🏆 |
+| World Record      | 250+ kg      | Naim territory 🏆  |
