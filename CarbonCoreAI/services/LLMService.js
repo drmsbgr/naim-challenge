@@ -49,3 +49,20 @@ export const sendMessageToLLM = async (userText) => {
     return "Sistem hatası: " + error.message;
   }
 };
+
+export const simulateRuntime = async (carbonCode) => {
+  try {
+    const runtimeModel = genAI.getGenerativeModel({ 
+      model: "gemini-2.5-flash",
+      systemInstruction: `Sen bir CIL (.NET Common Intermediate Language) Derleyici ve Çalıştırıcı simülatörüsün. GÖREVİN: Kullanıcının verdiği Türkçe tabanlı 'Carbon' programlama dilindeki kodu analiz edip, sanki .NET ortamında çalıştırılmış gibi sadece ve sadece STDOUT (Konsol) çıktısını vermek.\n\nCarbon Dil Kuralları:\n${grammarSpec}`
+    });
+
+    const runPrompt = `Aşağıdaki kodu çalıştır ve YALNIZCA konsol çıktısını ekrana bas. Açıklama yapma:\n\n${carbonCode}`;
+
+    const result = await runtimeModel.generateContent(runPrompt);
+    const response = await result.response;
+    return response.text().trim();
+  } catch (error) {
+    return "[Compiler Bridge Error]: " + error.message;
+  }
+};

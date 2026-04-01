@@ -20,7 +20,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import CarbonHighlighter from './components/CarbonHighlighter';
-import { sendMessageToLLM, initChat } from './services/LLMService';
+import { sendMessageToLLM, initChat, simulateRuntime } from './services/LLMService';
 
 const { width } = Dimensions.get('window');
 
@@ -210,6 +210,12 @@ function ChatScreen({ navigation }) {
     initChat();
   }, []);
 
+  const handleRunCode = async (id, code) => {
+    setMessages(prev => prev.map(m => m.id === id ? { ...m, isRunning: true } : m));
+    const result = await simulateRuntime(code);
+    setMessages(prev => prev.map(m => m.id === id ? { ...m, isRunning: false, consoleOutput: result } : m));
+  };
+
   const handleSend = async (text) => {
     const newMessage = { id: Date.now().toString(), text, isUser: true };
     setMessages((prev) => [...prev, newMessage]);
@@ -259,7 +265,27 @@ function ChatScreen({ navigation }) {
               item.isCode && !item.isUser ? { backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#333' } : {}
             ]}>
               {item.isCode ? (
-                <CarbonHighlighter code={item.text} />
+                <View>
+                  <CarbonHighlighter code={item.text} />
+                  {!item.isUser && (
+                    <View style={styles.codeActions}>
+                      <TouchableOpacity 
+                        style={styles.runButton}
+                        onPress={() => handleRunCode(item.id, item.text)}
+                        disabled={item.isRunning}
+                      >
+                        <Ionicons name={item.isRunning ? "hourglass" : "play"} size={14} color="#FFF" />
+                        <Text style={styles.runButtonText}>{item.isRunning ? "Çalıştırılıyor..." : "Çalıştır"}</Text>
+                      </TouchableOpacity>
+                      {item.consoleOutput && (
+                        <View style={styles.consoleWrapper}>
+                          <Text style={styles.consoleHeader}>--- Console Output ---</Text>
+                          <Text style={styles.consoleOutput}>{item.consoleOutput}</Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+                </View>
               ) : (
                 <Text style={styles.messageText}>{item.text}</Text>
               )}
@@ -359,27 +385,92 @@ function HomeScreen({ navigation }) {
 }
 
 // ─── Placeholder Screens ──────────────────────────────────────────────
+const SAMPLE_HISTORY = [
+  { id: '1', date: 'Bugün 18:30', preview: "1'den 5'e kadar sayıları yazdıran..." },
+  { id: '2', date: 'Dün 14:15', preview: 'Bubble sort algoritması Carbon...' },
+];
+
 function HistoryScreen() {
   return (
-    <View style={styles.placeholderContainer}>
-      <Text style={styles.placeholderText}>History Screen</Text>
-    </View>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.topBar}>
+        <Text style={styles.logoText}>Geçmiş Sohbetler</Text>
+      </View>
+      <ScrollView contentContainerStyle={{ padding: 20 }}>
+        {SAMPLE_HISTORY.map(item => (
+          <TouchableOpacity key={item.id} style={styles.historyCard}>
+            <MaterialCommunityIcons name="chat-outline" size={20} color={COLORS.primaryContainer} />
+            <View style={{ marginLeft: 15, flex: 1 }}>
+              <Text style={{ color: COLORS.onSurface, fontSize: 16 }}>{item.preview}</Text>
+              <Text style={{ color: COLORS.textSecondary, fontSize: 12, marginTop: 4 }}>{item.date}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.outlineVariant} />
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
+const SAMPLE_PROJECTS = [
+  { id: '1', name: 'basit_dongu.carbon', size: '1.2 KB', date: '2 Saat önce' },
+  { id: '2', name: 'hesap_makinesi.carbon', size: '3.4 KB', date: 'Dün' },
+  { id: '3', name: 'fibonacci.carbon', size: '0.8 KB', date: 'Geçen hafta' },
+];
+
 function ProjectsScreen() {
   return (
-    <View style={styles.placeholderContainer}>
-      <Text style={styles.placeholderText}>Projects Screen</Text>
-    </View>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.topBar}>
+        <Text style={styles.logoText}>Projelerim</Text>
+      </View>
+      <ScrollView contentContainerStyle={{ padding: 20 }}>
+        <TouchableOpacity style={[styles.runButton, { marginBottom: 20, alignSelf: 'flex-start' }]}>
+          <Ionicons name="add" size={16} color="#FFF" />
+          <Text style={styles.runButtonText}>Yeni .carbon Dosyası</Text>
+        </TouchableOpacity>
+        {SAMPLE_PROJECTS.map(item => (
+          <TouchableOpacity key={item.id} style={styles.historyCard}>
+            <MaterialCommunityIcons name="file-code-outline" size={24} color={COLORS.primaryContainer} />
+            <View style={{ marginLeft: 15, flex: 1 }}>
+              <Text style={{ color: COLORS.onSurface, fontSize: 16 }}>{item.name}</Text>
+              <Text style={{ color: COLORS.textSecondary, fontSize: 12, marginTop: 4 }}>Boyut: {item.size} • {item.date}</Text>
+            </View>
+            <Feather name="trash-2" size={18} color={COLORS.outlineVariant} />
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 function ProfileScreen() {
   return (
-    <View style={styles.placeholderContainer}>
-      <Text style={styles.placeholderText}>Profile Screen</Text>
-    </View>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.topBar}>
+        <Text style={styles.logoText}>Profil & Ayarlar</Text>
+      </View>
+      <ScrollView contentContainerStyle={{ padding: 20, alignItems: 'center' }}>
+         <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.surfaceContainerHigh, alignItems: 'center', justifyContent: 'center', marginBottom: 15 }}>
+            <Ionicons name="person" size={40} color={COLORS.primaryContainer} />
+         </View>
+         <Text style={{ color: COLORS.onSurface, fontSize: 20, fontWeight: 'bold' }}>Geliştirici</Text>
+         <Text style={{ color: COLORS.textSecondary, fontSize: 14, marginBottom: 30 }}>Free Tier Plan • gemini-2.5-flash</Text>
+         
+         <View style={styles.historyCard}>
+           <Text style={{ color: COLORS.onSurface, flex: 1 }}>Koyu Tema</Text>
+           <Ionicons name="toggle" size={32} color={COLORS.primaryContainer} />
+         </View>
+         <View style={styles.historyCard}>
+           <Text style={{ color: COLORS.onSurface, flex: 1 }}>LLM API Anahtarı Değiştir</Text>
+           <Ionicons name="chevron-forward" size={20} color={COLORS.outlineVariant} />
+         </View>
+         <View style={styles.historyCard}>
+           <Text style={{ color: COLORS.primaryContainer, flex: 1 }}>Bütün Verileri Sil</Text>
+           <Feather name="trash-2" size={18} color={COLORS.primaryContainer} />
+         </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -523,14 +614,74 @@ const styles = StyleSheet.create({
   },
   aiBubble: {
     alignSelf: 'flex-start',
-    backgroundColor: COLORS.surfaceContainerHigh,
-    borderBottomLeftRadius: 4,
+    backgroundColor: COLORS.surfaceContainerLow,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceContainerHigh,
+  },
+  aiBubbleThinking: {
+    alignSelf: 'flex-start',
+    backgroundColor: COLORS.surfaceContainerLow,
+    borderWidth: 1,
+    borderColor: COLORS.surfaceContainerHigh,
+    width: 120,
+    alignItems: 'center'
   },
   messageText: {
     color: COLORS.onSurface,
     fontSize: 15,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     lineHeight: 22,
-    ...FONTS.regular,
+  },
+  codeActions: {
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#333',
+    paddingTop: 10,
+  },
+  runButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#353534',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    alignSelf: 'flex-start'
+  },
+  runButtonText: {
+    color: '#FFF',
+    fontSize: 13,
+    marginLeft: 6,
+    fontWeight: 'bold'
+  },
+  consoleWrapper: {
+    marginTop: 10,
+    backgroundColor: '#000',
+    padding: 10,
+    borderRadius: 6,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.primaryContainer
+  },
+  consoleHeader: {
+    color: '#666',
+    fontSize: 12,
+    marginBottom: 5,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  consoleOutput: {
+    color: '#A3BE8C',
+    fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  historyCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surfaceContainerLow,
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 10,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: COLORS.surfaceContainerHigh,
   },
 
   // ── Status Dot ──
