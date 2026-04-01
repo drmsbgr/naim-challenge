@@ -1,0 +1,20 @@
+On branch main
+Your branch is ahead of 'origin/main' by 1 commit.
+  (use "git push" to publish your local commits)
+
+Changes not staged for commit:
+  (use "git add/rm <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   CarbonCoreAI/App.js
+	modified:   CarbonCoreAI/services/LLMService.js
+	modified:   MOBILE.md
+	deleted:    visual/iteration4_syntax_colors_1775064137436.png
+	deleted:    visual/iteration5_llm_test_v2_1775064891653.webp
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	assets/phase4_matrix_view_loaded.png
+	assets/phase4_separated_bubbles.png
+	gitstatus.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")

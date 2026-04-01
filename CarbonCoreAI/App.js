@@ -20,7 +20,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import CarbonHighlighter from './components/CarbonHighlighter';
-import { sendMessageToLLM, initChat, simulateRuntime } from './services/LLMService';
+import { sendMessageToLLM, initChat, simulateRuntime, simulateLowLevel } from './services/LLMService';
 
 const { width } = Dimensions.get('window');
 
@@ -216,27 +216,49 @@ function ChatScreen({ navigation }) {
     setMessages(prev => prev.map(m => m.id === id ? { ...m, isRunning: false, consoleOutput: result } : m));
   };
 
+  const handleLowLevel = (code) => {
+    navigation.navigate('LowLevel', { code });
+  };
+
   const handleSend = async (text) => {
     const newMessage = { id: Date.now().toString(), text, isUser: true };
     setMessages((prev) => [...prev, newMessage]);
     setIsTyping(true);
 
     const responseText = await sendMessageToLLM(text);
-    
-    // Remove triple backticks if we want, or just let highlighter parse it.
-    // For simplicity, let's clean up ```carbon and ``` from the string cleanly.
-    let cleanText = responseText.replace(/```carbon/gi, '').replace(/```/g, '').trim();
-
     setIsTyping(false);
-    setMessages((prev) => [
-      ...prev,
-      { 
-        id: (Date.now() + 1).toString(), 
-        text: cleanText, 
-        isUser: false, 
-        isCode: true // Always treat AI response as potential code for highlighting
-      },
-    ]);
+
+    const regex = /```(?:carbon)?\s*([\s\S]*?)```/gi;
+    let parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = regex.exec(responseText)) !== null) {
+      if (match.index > lastIndex) {
+        const textPart = responseText.substring(lastIndex, match.index).trim();
+        if (textPart) parts.push({ text: textPart, isCode: false });
+      }
+      const codePart = match[1].trim();
+      if (codePart) parts.push({ text: codePart, isCode: true });
+      lastIndex = regex.lastIndex;
+    }
+    
+    if (lastIndex < responseText.length) {
+      const textPart = responseText.substring(lastIndex).trim();
+      if (textPart) parts.push({ text: textPart, isCode: false });
+    }
+
+    if (parts.length === 0) {
+      parts.push({ text: responseText.trim(), isCode: false });
+    }
+
+    const newMessages = parts.map((part, index) => ({
+      ...part,
+      id: Date.now().toString() + index,
+      isUser: false
+    }));
+
+    setMessages((prev) => [...prev, ...newMessages]);
   };
 
   return (
@@ -269,22 +291,32 @@ function ChatScreen({ navigation }) {
                   <CarbonHighlighter code={item.text} />
                   {!item.isUser && (
                     <View style={styles.codeActions}>
-                      <TouchableOpacity 
-                        style={styles.runButton}
-                        onPress={() => handleRunCode(item.id, item.text)}
-                        disabled={item.isRunning}
-                      >
-                        <Ionicons name={item.isRunning ? "hourglass" : "play"} size={14} color="#FFF" />
-                        <Text style={styles.runButtonText}>{item.isRunning ? "Çalıştırılıyor..." : "Çalıştır"}</Text>
-                      </TouchableOpacity>
-                      {item.consoleOutput && (
-                        <View style={styles.consoleWrapper}>
-                          <Text style={styles.consoleHeader}>--- Console Output ---</Text>
-                          <Text style={styles.consoleOutput}>{item.consoleOutput}</Text>
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                          <TouchableOpacity 
+                            style={styles.runButton}
+                            onPress={() => handleRunCode(item.id, item.text)}
+                            disabled={item.isRunning}
+                          >
+                            <Ionicons name={item.isRunning ? "hourglass" : "play"} size={14} color="#FFF" />
+                            <Text style={styles.runButtonText}>{item.isRunning ? "Çalıştırılıyor..." : "Çalıştır"}</Text>
+                          </TouchableOpacity>
+                          
+                          <TouchableOpacity 
+                            style={[styles.runButton, { backgroundColor: '#003B00' }]}
+                            onPress={() => handleLowLevel(item.text)}
+                          >
+                            <Ionicons name="hardware-chip" size={14} color="#00FF41" />
+                            <Text style={[styles.runButtonText, { color: '#00FF41' }]}>Makine Kodu (x86)</Text>
+                          </TouchableOpacity>
                         </View>
-                      )}
-                    </View>
-                  )}
+                        {item.consoleOutput && (
+                          <View style={styles.consoleWrapper}>
+                            <Text style={styles.consoleHeader}>--- Console Output ---</Text>
+                            <Text style={styles.consoleOutput}>{item.consoleOutput}</Text>
+                          </View>
+                        )}
+                      </View>
+                    )}
                 </View>
               ) : (
                 <Text style={styles.messageText}>{item.text}</Text>
@@ -473,7 +505,47 @@ function ProfileScreen() {
     </SafeAreaView>
   );
 }
+// ─── Low Level Matrix Screen ──────────────────────────────────────────
+function LowLevelScreen({ route, navigation }) {
+  const { code } = route.params;
+  const [output, setOutput] = useState('');
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    const fetchAsm = async () => {
+      const result = await simulateLowLevel(code);
+      setOutput(result);
+      setLoading(false);
+    };
+    fetchAsm();
+  }, [code]);
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#050505' }}>
+      <StatusBar barStyle="light-content" backgroundColor="#050505" />
+      <View style={{ flexDirection: 'row', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderBottomColor: '#003B00', backgroundColor: '#0A0A0A' }}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 15 }}>
+          <Ionicons name="arrow-back" size={24} color="#00FF41" />
+        </TouchableOpacity>
+        <Text style={{ color: '#00FF41', fontSize: 18, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontWeight: 'bold' }}>SYS_DISASM_x86_64</Text>
+      </View>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20 }}>
+        {loading ? (
+          <View style={{ alignItems: 'flex-start' }}>
+             <Text style={{ color: '#008F11', fontSize: 15, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', marginBottom: 10 }}>[INITIALIZING DISASSEMBLER...]</Text>
+             <Text style={{ color: '#008F11', fontSize: 14, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>&gt; Parsing AST Nodes...</Text>
+             <Text style={{ color: '#008F11', fontSize: 14, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', marginTop: 5 }}>&gt; Mapping routines to x86-64...</Text>
+             <Text style={{ color: '#008F11', fontSize: 14, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', marginTop: 5 }}>&gt; Generating Hex dump...</Text>
+          </View>
+        ) : (
+          <Text style={{ color: '#00FF41', fontSize: 13, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', lineHeight: 22 }}>
+            {output}
+          </Text>
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
@@ -482,6 +554,7 @@ function HomeStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="HomeMain" component={HomeScreen} />
       <Stack.Screen name="Chat" component={ChatScreen} />
+      <Stack.Screen name="LowLevel" component={LowLevelScreen} />
     </Stack.Navigator>
   );
 }

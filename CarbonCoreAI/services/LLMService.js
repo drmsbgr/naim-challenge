@@ -66,3 +66,25 @@ export const simulateRuntime = async (carbonCode) => {
     return "[Compiler Bridge Error]: " + error.message;
   }
 };
+
+export const simulateLowLevel = async (carbonCode) => {
+  try {
+    const asmModel = genAI.getGenerativeModel({ 
+      model: "gemini-2.5-flash",
+      systemInstruction: `Sen bir düşük seviye (Low-Level) disassembler analizörüsün. GÖREVİN: Kullanıcının verdiği Carbon dilindeki kodu x86-64 Assembler komutlarına (veya AST düğümlerine) ayırarak, bellek adresleri ve hex kodları içeren inanılmaz teknik, "hacker" görünümlü bir makine dili dökümü üretmek.
+Çıktın şuna benzemeli:
+0x00401000  55           push    rbp
+0x00401001  48 89 e5     mov     rbp, rsp
+...
+Lütfen SADECE assembly çıktısını ver, başka hiçbir Türkçe kelime veya açıklama ekleme.`
+    });
+
+    const runPrompt = `Disassemble this Carbon Code:\n\n${carbonCode}`;
+
+    const result = await asmModel.generateContent(runPrompt);
+    const response = await result.response;
+    return response.text().trim();
+  } catch (error) {
+    return "0xDEADBEEF DISASSEMBLY FAILED: " + error.message;
+  }
+};
