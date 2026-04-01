@@ -19,6 +19,7 @@ import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import CarbonHighlighter from './components/CarbonHighlighter';
 
 const { width } = Dimensions.get('window');
 
@@ -195,6 +196,12 @@ function ChatInput({ onSend }) {
 function ChatScreen({ navigation }) {
   const [messages, setMessages] = useState([
     { id: '1', text: 'Merhaba! Ben Carbon Core AI. Size nasıl yardımcı olabilirim?', isUser: false },
+    { 
+      id: '2', 
+      text: '// İlk Carbon kodunuz\ntanıt isim = "Ahmet";\n\neğer (isim == "Ahmet") {\n    yazdır("Merhaba Ahmet!");\n}', 
+      isUser: false,
+      isCode: true
+    }
   ]);
 
   const handleSend = (text) => {
@@ -205,7 +212,7 @@ function ChatScreen({ navigation }) {
     setTimeout(() => {
       setMessages((prev) => [
         ...prev,
-        { id: (Date.now() + 1).toString(), text: 'Bu bir mock AI cevabıdır. Henüz LLM bağlı değil.', isUser: false },
+        { id: (Date.now() + 1).toString(), text: 'Bu örnek bir Carbon çıktı bloğudur:\n\nher (tanıt i = 0; i < 5; i++) {\n    yazdır(i);\n}', isUser: false, isCode: true },
       ]);
     }, 1000);
   };
@@ -232,9 +239,14 @@ function ChatScreen({ navigation }) {
           renderItem={({ item }) => (
             <View style={[
               styles.messageBubble, 
-              item.isUser ? styles.userBubble : styles.aiBubble
+              item.isUser ? styles.userBubble : styles.aiBubble,
+              item.isCode && !item.isUser ? { backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#333' } : {}
             ]}>
-              <Text style={styles.messageText}>{item.text}</Text>
+              {item.isCode ? (
+                <CarbonHighlighter code={item.text} />
+              ) : (
+                <Text style={styles.messageText}>{item.text}</Text>
+              )}
             </View>
           )}
         />

@@ -18,9 +18,9 @@
 
 | Metric            | Value |
 | ----------------- | ----- |
-| Total Iterations  | 3     |
-| Total Weight (kg) | 30    |
-| Total Time (min)  | 40    |
+| Total Iterations  | 4     |
+| Total Weight (kg) | 45    |
+| Total Time (min)  | 55    |
 | Failed Attempts   | 0     |
 
 ---
@@ -84,7 +84,7 @@ Planı uygula. (Faz 1 - Iteration 2: Navigation)
 
 **Screenshot:** `assets/iteration2_history_tab.png`
 
-**Commit:** `[NAIM: Carbon Core AI] Added Multi-Screen Navigation - 15kg`
+**Commit:** `[NAIM: Carbon Multi-Screen Navigation - 15kg]`
 
 ---
 
@@ -119,6 +119,37 @@ Planı uygula. (Faz 1 - Iteration 3: Chat Screen)
 **Screenshot:** `assets/iteration3_chat_screen.png`
 
 **Commit:** `[NAIM: Carbon Core AI] Added Chat Screen and Message Flow - 10kg`
+
+---
+
+### 🏋️ Iteration 4
+
+| Field     | Value |
+| --------- | ----- |
+| Feature   | `Carbon Syntax Highlighting` |
+| Weight    | `15 kg ⭐` (Core Special) |
+| Tool Used | `Antigravity` |
+| Time      | `15 min` |
+| Attempts  | `1` |
+| Status    | ✅ Success |
+
+**Prompt given to AI:**
+
+```
+Planı uygula. (Faz 1 - Iteration 4: Carbon Syntax Highlighting)
+```
+
+**What happened:**
+
+- Düzenli ifadeler (regex) tabanlı custom tokenizer oluşturuldu.
+- `grammar.md` dosyasına göre: `tanıt`, `eğer`, `yazdır` vb. anahtar kelimeler ile sayılar, string literal'leri ve comment'ler ayrıştırıldı.
+- `CarbonHighlighter` bileşeni (`CarbonCoreAI/components/CarbonHighlighter.js`) oluşturuldu. Farklı token grupları için farklı renk hedefleri eklendi.
+- `App.js` icerisindeki `ChatScreen` guncellenerek, gelen message da `isCode: true` varsa, mesajın içi bu SyntaxHighlighter tarafından oluşturulacak hale getirildi. 
+- İlk test, componentin başarılı şekilde Dark Mode IDE temasında çalıştığını kanıtladı. 
+
+**Screenshot:** `assets/iteration4_syntax_highlight.png`
+
+**Commit:** `[NAIM: Carbon Core AI] Added Carbon Syntax Highlighting - 15kg`
 
 ---
 
