@@ -16,11 +16,12 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, useFocusEffect } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import CarbonHighlighter from './components/CarbonHighlighter';
 import { sendMessageToLLM, initChat, simulateRuntime, simulateLowLevel, generateAutoDoc } from './services/LLMService';
+import { getChats, saveChat, deleteChat, getChatById, getProjects, saveProject, deleteProject, getProjectById } from './services/StorageService';
 
 const { width } = Dimensions.get('window');
 
@@ -194,26 +195,53 @@ function ChatInput({ onSend }) {
 }
 
 // ─── Chat Screen ───────────────────────────────────────────────────────
-function ChatScreen({ navigation }) {
-  const [messages, setMessages] = useState([
-    { id: '1', text: 'Merhaba! Ben Carbon Core AI. Size nasıl yardımcı olabilirim?', isUser: false },
-    { 
-      id: '2', 
-      text: '// İlk Carbon kodunuz\ntanıt isim = "Ahmet";\n\neğer (isim == "Ahmet") {\n    yazdır("Merhaba Ahmet!");\n}', 
-      isUser: false,
-      isCode: true
-    }
-  ]);
+function ChatScreen({ route, navigation }) {
+  const [messages, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
+  const chatId = useRef(route.params?.chatId || Date.now().toString()).current;
 
   useEffect(() => {
-    initChat();
-  }, []);
+    const loadChat = async () => {
+      initChat();
+      if (route.params?.chatId) {
+        const existing = await getChatById(route.params.chatId);
+        if (existing) {
+          setMessages(existing.messages.map(m => ({...m, isRunning: false})));
+        }
+      } else {
+        setMessages([
+          { id: '1', text: 'Merhaba! Ben Carbon Core AI. Size nasıl yardımcı olabilirim?', isUser: false },
+          { 
+            id: '2', 
+            text: '// İlk Carbon kodunuz\ntanıt isim = "Ahmet";\n\neğer (isim == "Ahmet") {\n    yazdır("Merhaba Ahmet!");\n}', 
+            isUser: false,
+            isCode: true
+          }
+        ]);
+      }
+    };
+    loadChat();
+  }, [route.params?.chatId]);
+
+  const commitChatSync = (newArr) => {
+    const firstUserMsg = newArr.find(m => m.isUser);
+    const chatData = {
+      id: chatId,
+      date: new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
+      preview: firstUserMsg ? firstUserMsg.text : 'Yeni Sohbet',
+      messages: newArr,
+    };
+    saveChat(chatData);
+  };
 
   const handleRunCode = async (id, code) => {
     setMessages(prev => prev.map(m => m.id === id ? { ...m, isRunning: true } : m));
     const result = await simulateRuntime(code);
-    setMessages(prev => prev.map(m => m.id === id ? { ...m, isRunning: false, consoleOutput: result } : m));
+    setMessages(prev => {
+      const newArr = prev.map(m => m.id === id ? { ...m, isRunning: false, consoleOutput: result } : m);
+      commitChatSync(newArr);
+      return newArr;
+    });
   };
 
   const handleLowLevel = (code) => {
@@ -222,7 +250,11 @@ function ChatScreen({ navigation }) {
 
   const handleSend = async (text) => {
     const newMessage = { id: Date.now().toString(), text, isUser: true };
-    setMessages((prev) => [...prev, newMessage]);
+    setMessages((prev) => {
+      const narr = [...prev, newMessage];
+      commitChatSync(narr);
+      return narr;
+    });
     setIsTyping(true);
 
     const responseText = await sendMessageToLLM(text);
@@ -258,7 +290,11 @@ function ChatScreen({ navigation }) {
       isUser: false
     }));
 
-    setMessages((prev) => [...prev, ...newMessages]);
+    setMessages((prev) => {
+      const narr = [...prev, ...newMessages];
+      commitChatSync(narr);
+      return narr;
+    });
   };
 
   return (
@@ -416,61 +452,106 @@ function HomeScreen({ navigation }) {
   );
 }
 
-// ─── Placeholder Screens ──────────────────────────────────────────────
-const SAMPLE_HISTORY = [
-  { id: '1', date: 'Bugün 18:30', preview: "1'den 5'e kadar sayıları yazdıran..." },
-  { id: '2', date: 'Dün 14:15', preview: 'Bubble sort algoritması Carbon...' },
-];
+function HistoryScreen({ navigation }) {
+  const [chats, setChats] = useState([]);
 
-function HistoryScreen() {
+  useFocusEffect(
+    React.useCallback(() => {
+      const loadData = async () => {
+        const storedChats = await getChats();
+        setChats(storedChats);
+      };
+      loadData();
+    }, [])
+  );
+
+  const handleDelete = async (id) => {
+    await deleteChat(id);
+    setChats(prev => prev.filter(c => c.id !== id));
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.topBar}>
         <Text style={styles.logoText}>Geçmiş Sohbetler</Text>
       </View>
       <ScrollView contentContainerStyle={{ padding: 20 }}>
-        {SAMPLE_HISTORY.map(item => (
-          <TouchableOpacity key={item.id} style={styles.historyCard}>
-            <MaterialCommunityIcons name="chat-outline" size={20} color={COLORS.primaryContainer} />
-            <View style={{ marginLeft: 15, flex: 1 }}>
-              <Text style={{ color: COLORS.onSurface, fontSize: 16 }}>{item.preview}</Text>
-              <Text style={{ color: COLORS.textSecondary, fontSize: 12, marginTop: 4 }}>{item.date}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.outlineVariant} />
-          </TouchableOpacity>
-        ))}
+        {chats.length === 0 ? (
+          <Text style={{color: COLORS.textSecondary, textAlign: 'center', marginTop: 50}}>Henüz bir sohbet geçmişi yok.</Text>
+        ) : (
+          chats.map(item => (
+            <TouchableOpacity 
+              key={item.id} 
+              style={styles.historyCard}
+              onPress={() => navigation.navigate('Home', { screen: 'Chat', params: { chatId: item.id } })}
+            >
+              <MaterialCommunityIcons name="chat-outline" size={20} color={COLORS.primaryContainer} />
+              <View style={{ marginLeft: 15, flex: 1 }}>
+                <Text style={{ color: COLORS.onSurface, fontSize: 16 }} numberOfLines={1}>{item.preview || 'Yeni Sohbet'}</Text>
+                <Text style={{ color: COLORS.textSecondary, fontSize: 12, marginTop: 4 }}>{item.date}</Text>
+              </View>
+              <TouchableOpacity onPress={() => handleDelete(item.id)} style={{ padding: 5 }}>
+                <Feather name="trash-2" size={18} color={COLORS.outlineVariant} />
+              </TouchableOpacity>
+            </TouchableOpacity>
+          ))
+        )}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const SAMPLE_PROJECTS = [
-  { id: '1', name: 'basit_dongu.carbon', size: '1.2 KB', date: '2 Saat önce' },
-  { id: '2', name: 'hesap_makinesi.carbon', size: '3.4 KB', date: 'Dün' },
-  { id: '3', name: 'fibonacci.carbon', size: '0.8 KB', date: 'Geçen hafta' },
-];
+function ProjectsScreen({ navigation }) {
+  const [projects, setProjects] = useState([]);
 
-function ProjectsScreen() {
+  useFocusEffect(
+    React.useCallback(() => {
+      const load = async () => {
+        const stored = await getProjects();
+        setProjects(stored);
+      };
+      load();
+    }, [])
+  );
+
+  const handleDelete = async (id) => {
+    await deleteProject(id);
+    setProjects(prev => prev.filter(p => p.id !== id));
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.topBar}>
         <Text style={styles.logoText}>Projelerim</Text>
       </View>
       <ScrollView contentContainerStyle={{ padding: 20 }}>
-        <TouchableOpacity style={[styles.runButton, { marginBottom: 20, alignSelf: 'flex-start' }]}>
+        <TouchableOpacity 
+          style={[styles.runButton, { marginBottom: 20, alignSelf: 'flex-start' }]}
+          onPress={() => navigation.navigate('Home', { screen: 'Editor' })}
+        >
           <Ionicons name="add" size={16} color="#FFF" />
           <Text style={styles.runButtonText}>Yeni .carbon Dosyası</Text>
         </TouchableOpacity>
-        {SAMPLE_PROJECTS.map(item => (
-          <TouchableOpacity key={item.id} style={styles.historyCard}>
-            <MaterialCommunityIcons name="file-code-outline" size={24} color={COLORS.primaryContainer} />
-            <View style={{ marginLeft: 15, flex: 1 }}>
-              <Text style={{ color: COLORS.onSurface, fontSize: 16 }}>{item.name}</Text>
-              <Text style={{ color: COLORS.textSecondary, fontSize: 12, marginTop: 4 }}>Boyut: {item.size} • {item.date}</Text>
-            </View>
-            <Feather name="trash-2" size={18} color={COLORS.outlineVariant} />
-          </TouchableOpacity>
-        ))}
+        {projects.length === 0 ? (
+          <Text style={{color: COLORS.textSecondary, textAlign: 'center', marginTop: 30}}>Henüz bir proje yok.</Text>
+        ) : (
+          projects.map(item => (
+            <TouchableOpacity 
+              key={item.id} 
+              style={styles.historyCard}
+              onPress={() => navigation.navigate('Home', { screen: 'Editor', params: { fileId: item.id } })}
+            >
+              <MaterialCommunityIcons name="file-code-outline" size={24} color={COLORS.primaryContainer} />
+              <View style={{ marginLeft: 15, flex: 1 }}>
+                <Text style={{ color: COLORS.onSurface, fontSize: 16 }}>{item.name}</Text>
+                <Text style={{ color: COLORS.textSecondary, fontSize: 12, marginTop: 4 }}>Boyut: {item.size} • {item.date}</Text>
+              </View>
+              <TouchableOpacity onPress={() => handleDelete(item.id)} style={{ padding: 5 }}>
+                <Feather name="trash-2" size={18} color={COLORS.outlineVariant} />
+              </TouchableOpacity>
+            </TouchableOpacity>
+          ))
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -655,6 +736,112 @@ function DocsScreen({ navigation }) {
     </SafeAreaView>
   );
 }
+// ─── Local IDE (EditorScreen) ──────────────────────────────────────────
+function EditorScreen({ route, navigation }) {
+  const fileId = route.params?.fileId;
+  const [code, setCode] = useState('');
+  const [fileName, setFileName] = useState('');
+  const [consoleOutput, setConsoleOutput] = useState(null);
+  const [isRunning, setIsRunning] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      if (fileId) {
+        const p = await getProjectById(fileId);
+        if (p) {
+          setCode(p.content);
+          setFileName(p.name);
+        }
+      } else {
+        setFileName(`proje_${Date.now().toString().slice(-4)}.carbon`);
+        setCode('// Yeni Carbon Dosyası\n');
+      }
+    };
+    load();
+  }, [fileId]);
+
+  const handleSave = async () => {
+    const proj = {
+      id: fileId || Date.now().toString(),
+      name: fileName,
+      content: code,
+      size: `${(code.length / 1024).toFixed(1)} KB`,
+      date: new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
+    };
+    await saveProject(proj);
+    if (!fileId) {
+      navigation.setParams({ fileId: proj.id });
+    }
+    // Basit bildirim eklenebilir. Şimdilik state değişiyor.
+  };
+
+  const handleRun = async () => {
+    setIsRunning(true);
+    setConsoleOutput(null);
+    const result = await simulateRuntime(code);
+    setIsRunning(false);
+    setConsoleOutput(result);
+  };
+
+  const handleASM = () => {
+    navigation.navigate('LowLevel', { code });
+  };
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0A0A' }}>
+      <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
+      <View style={{ flexDirection: 'row', alignItems: 'center', padding: 10, borderBottomWidth: 1, borderBottomColor: '#222', backgroundColor: '#131313' }}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 5, marginRight: 10 }}>
+          <Ionicons name="arrow-back" size={24} color="#FFF" />
+        </TouchableOpacity>
+        <TextInput 
+          style={{ flex: 1, color: '#FFF', fontSize: 16, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}
+          value={fileName}
+          onChangeText={setFileName}
+        />
+        <TouchableOpacity onPress={handleSave} style={{ marginRight: 15, flexDirection: 'row', alignItems: 'center' }}>
+          <Ionicons name="save-outline" size={20} color="#00FF41" />
+          <Text style={{color: '#00FF41', marginLeft: 5, fontWeight: 'bold'}}>Kaydet</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={{ flexDirection: 'row', padding: 10, gap: 10, backgroundColor: '#0d0d0d', borderBottomWidth: 1, borderBottomColor: '#222' }}>
+        <TouchableOpacity 
+          style={[styles.runButton, { flex: 1, justifyContent: 'center' }]}
+          onPress={handleRun}
+        >
+           <Ionicons name={isRunning ? "hourglass" : "play"} size={16} color="#FFF" />
+           <Text style={styles.runButtonText}>{isRunning ? "Derleniyor..." : "Çalıştır"}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.runButton, { flex: 1, justifyContent: 'center', backgroundColor: '#003B00' }]}
+          onPress={handleASM}
+        >
+           <Ionicons name="hardware-chip" size={16} color="#00FF41" />
+           <Text style={[styles.runButtonText, { color: '#00FF41' }]}>Makine Kodu (ASM)</Text>
+        </TouchableOpacity>
+      </View>
+      <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
+        <TextInput
+          style={{ padding: 15, color: '#D4D4D4', fontSize: 14, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', minHeight: 400 }}
+          value={code}
+          onChangeText={setCode}
+          multiline
+          textAlignVertical="top"
+          placeholder="// Kodunuzu buraya yazın..."
+          placeholderTextColor="#444"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+      </ScrollView>
+      {consoleOutput && (
+        <View style={{ padding: 15, backgroundColor: '#1E1E1E', borderTopWidth: 2, borderTopColor: '#00FF41' }}>
+           <Text style={{ color: '#00FF41', fontWeight: 'bold', marginBottom: 5 }}>[STDOUT]:</Text>
+           <Text style={{ color: '#FFF', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>{consoleOutput}</Text>
+        </View>
+      )}
+    </SafeAreaView>
+  );
+}
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
@@ -664,6 +851,7 @@ function HomeStack() {
       <Stack.Screen name="HomeMain" component={HomeScreen} />
       <Stack.Screen name="Chat" component={ChatScreen} />
       <Stack.Screen name="LowLevel" component={LowLevelScreen} />
+      <Stack.Screen name="Editor" component={EditorScreen} />
     </Stack.Navigator>
   );
 }
