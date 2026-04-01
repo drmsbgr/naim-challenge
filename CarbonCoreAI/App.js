@@ -21,28 +21,12 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import CarbonHighlighter from './components/CarbonHighlighter';
 import { sendMessageToLLM, initChat, simulateRuntime, simulateLowLevel, generateAutoDoc } from './services/LLMService';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { getChats, saveChat, deleteChat, getChatById, getProjects, saveProject, deleteProject, getProjectById } from './services/StorageService';
 
 const { width } = Dimensions.get('window');
 
 // ─── Carbon Core Design Tokens ────────────────────────────────────────
-const COLORS = {
-  background: '#0E0E0E',
-  surface: '#131313',
-  surfaceContainerLow: '#1C1B1B',
-  surfaceContainer: '#201F1F',
-  surfaceContainerHigh: '#2A2A2A',
-  surfaceContainerHighest: '#353534',
-  primaryContainer: '#DC2626',
-  primary: '#FFB4AB',
-  secondary: '#B91C1C',
-  onSurface: '#E5E2E1',
-  onSurfaceVariant: '#E6BDB8',
-  outline: '#AC8884',
-  outlineVariant: '#5C403C',
-  textSecondary: '#9CA3AF',
-};
-
 const FONTS = {
   regular: { fontWeight: '400' },
   medium: { fontWeight: '500' },
@@ -53,6 +37,8 @@ const FONTS = {
 
 // ─── Pulsing Orb Component ────────────────────────────────────────────
 function PulsingOrb() {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(0.4)).current;
 
@@ -100,7 +86,7 @@ function PulsingOrb() {
       ]}
     >
       <LinearGradient
-        colors={['#DC2626', '#B91C1C', 'transparent']}
+        colors={[theme.primaryContainer, theme.primary, 'transparent']}
         style={styles.orb}
         start={{ x: 0.5, y: 0.5 }}
         end={{ x: 0.5, y: 1 }}
@@ -111,7 +97,9 @@ function PulsingOrb() {
 
 // ─── Status Dot Component ─────────────────────────────────────────────
 function StatusDot() {
-  const glowAnim = useRef(new Animated.Value(0.5)).current;
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
+const glowAnim = useRef(new Animated.Value(0.5)).current;
 
   useEffect(() => {
     Animated.loop(
@@ -146,6 +134,8 @@ function StatusDot() {
 
 // ─── Quick Action Card ────────────────────────────────────────────────
 function ActionCard({ label, category, icon, iconType = 'ionicons', onPress }) {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const IconComponent = iconType === 'material' ? MaterialCommunityIcons : Ionicons;
   
   return (
@@ -157,7 +147,7 @@ function ActionCard({ label, category, icon, iconType = 'ionicons', onPress }) {
           <Text style={styles.actionLabel}>{label}</Text>
         </View>
         <View style={styles.actionIconContainer}>
-          <IconComponent name={icon} size={20} color={COLORS.onSurface} />
+          <IconComponent name={icon} size={20} color={theme.onSurface} />
         </View>
       </View>
     </TouchableOpacity>
@@ -166,6 +156,8 @@ function ActionCard({ label, category, icon, iconType = 'ionicons', onPress }) {
 
 // ─── Chat Input Component ──────────────────────────────────────────────
 function ChatInput({ onSend }) {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const [text, setText] = useState('');
 
   const handleSend = () => {
@@ -181,7 +173,7 @@ function ChatInput({ onSend }) {
         <TextInput
           style={styles.textInput}
           placeholder="Carbon'a bir şey sor..."
-          placeholderTextColor={COLORS.outlineVariant}
+          placeholderTextColor={theme.outlineVariant}
           value={text}
           onChangeText={setText}
           onSubmitEditing={handleSend}
@@ -196,6 +188,8 @@ function ChatInput({ onSend }) {
 
 // ─── Chat Screen ───────────────────────────────────────────────────────
 function ChatScreen({ route, navigation }) {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const [messages, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
   const chatId = useRef(route.params?.chatId || Date.now().toString()).current;
@@ -302,7 +296,7 @@ function ChatScreen({ route, navigation }) {
       {/* ── Top Bar Minimal for Chat ── */}
       <View style={styles.chatTopBar}>
         <TouchableOpacity style={styles.chatBackButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.onSurface} />
+          <Ionicons name="arrow-back" size={24} color={theme.onSurface} />
         </TouchableOpacity>
         <Text style={styles.chatTitle}>Yeni Sohbet</Text>
         <View style={{ width: 40 }} />
@@ -374,35 +368,24 @@ function ChatScreen({ route, navigation }) {
 
 // ─── Home Screen ───────────────────────────────────────────────────────
 function HomeScreen({ navigation }) {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
+
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
+      <StatusBar barStyle={theme.key === 'light' ? 'dark-content' : 'light-content'} backgroundColor={theme.background} />
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { flex: 1, justifyContent: 'center' }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Top Bar ── */}
-        <View style={styles.topBar}>
-          <View style={styles.logoContainer}>
-            <MaterialCommunityIcons
-              name="code-braces"
-              size={18}
-              color={COLORS.primaryContainer}
-            />
-            <Text style={styles.logoText}>CARBON CORE</Text>
-          </View>
-
-          <View style={styles.topBarRight}>
-            <StatusDot />
-            <TouchableOpacity style={styles.settingsButton}>
-              <Feather name="settings" size={18} color={COLORS.onSurfaceVariant} />
-            </TouchableOpacity>
-          </View>
+        {/* ── Status Header ── */}
+        <View style={{ position: 'absolute', top: 20, width: '100%', alignItems: 'center' }}>
+          <StatusDot />
         </View>
 
-        {/* ── Hero Section ── */}
+        {/* ── Hero Section (Centered Logo) ── */}
         <View style={styles.heroSection}>
           <PulsingOrb />
           <Text style={styles.heroTitle}>CARBON{'\n'}CORE AI</Text>
@@ -411,48 +394,55 @@ function HomeScreen({ navigation }) {
           </Text>
         </View>
 
-        {/* ── Quick Actions ── */}
-        <View style={styles.actionsSection}>
-          <ActionCard
-            category="BAŞLAT"
-            label="Yeni Sohbet"
-            icon="chatbubble"
-            iconType="ionicons"
+        {/* ── Centered Main Action Button ── */}
+        <View style={{ paddingHorizontal: 40, marginTop: 40 }}>
+          <TouchableOpacity 
+            style={[styles.runButton, { 
+              paddingVertical: 18, 
+              width: '100%', 
+              justifyContent: 'center',
+              backgroundColor: theme.primaryContainer,
+              borderRadius: 16,
+              elevation: 4,
+              shadowColor: theme.primaryContainer,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8
+            }]}
+            activeOpacity={0.8}
             onPress={() => navigation.navigate('Chat')}
-          />
-          <ActionCard
-            category="GELİŞTİRME"
-            label="Kod Üret"
-            icon="code-braces-box"
-            iconType="material"
-            onPress={() => navigation.navigate('Chat')}
-          />
-          <ActionCard
-            category="VERİ"
-            label="Analiz"
-            icon="chart-bar"
-            iconType="material"
-            onPress={() => navigation.navigate('Chat')}
-          />
+          >
+            <Ionicons name="chatbubble-ellipses" size={24} color={theme.onPrimaryContainer} />
+            <Text style={[styles.runButtonText, { 
+              fontSize: 18, 
+              color: theme.onPrimaryContainer,
+              fontWeight: '800',
+              marginLeft: 12
+            }]}>
+              SOHBETE BAŞLA
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
-      {/* ── Chat Input acts as shortcut ── */}
-      <View style={styles.inputSection}>
-        <View style={styles.inputContainer}>
-          <Text style={[styles.textInput, { color: COLORS.outlineVariant, paddingTop: 14 }]} onPress={() => navigation.navigate('Chat')}>
-            Carbon'a bir şey sor...
-          </Text>
-          <TouchableOpacity style={styles.sendButton} activeOpacity={0.8} onPress={() => navigation.navigate('Chat')}>
-            <Ionicons name="arrow-up" size={20} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <Text style={{ 
+        position: 'absolute', 
+        bottom: 20, 
+        width: '100%', 
+        textAlign: 'center', 
+        color: theme.textSecondary,
+        fontSize: 12,
+        letterSpacing: 2
+      }}>
+        v1.2.0 • PREMİUM EDİTİON
+      </Text>
     </SafeAreaView>
   );
 }
 
 function HistoryScreen({ navigation }) {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const [chats, setChats] = useState([]);
 
   useFocusEffect(
@@ -477,7 +467,7 @@ function HistoryScreen({ navigation }) {
       </View>
       <ScrollView contentContainerStyle={{ padding: 20 }}>
         {chats.length === 0 ? (
-          <Text style={{color: COLORS.textSecondary, textAlign: 'center', marginTop: 50}}>Henüz bir sohbet geçmişi yok.</Text>
+          <Text style={{color: theme.textSecondary, textAlign: 'center', marginTop: 50}}>Henüz bir sohbet geçmişi yok.</Text>
         ) : (
           chats.map(item => (
             <TouchableOpacity 
@@ -485,13 +475,13 @@ function HistoryScreen({ navigation }) {
               style={styles.historyCard}
               onPress={() => navigation.navigate('Home', { screen: 'Chat', params: { chatId: item.id } })}
             >
-              <MaterialCommunityIcons name="chat-outline" size={20} color={COLORS.primaryContainer} />
+              <MaterialCommunityIcons name="chat-outline" size={20} color={theme.primaryContainer} />
               <View style={{ marginLeft: 15, flex: 1 }}>
-                <Text style={{ color: COLORS.onSurface, fontSize: 16 }} numberOfLines={1}>{item.preview || 'Yeni Sohbet'}</Text>
-                <Text style={{ color: COLORS.textSecondary, fontSize: 12, marginTop: 4 }}>{item.date}</Text>
+                <Text style={{ color: theme.onSurface, fontSize: 16 }} numberOfLines={1}>{item.preview || 'Yeni Sohbet'}</Text>
+                <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 4 }}>{item.date}</Text>
               </View>
               <TouchableOpacity onPress={() => handleDelete(item.id)} style={{ padding: 5 }}>
-                <Feather name="trash-2" size={18} color={COLORS.outlineVariant} />
+                <Feather name="trash-2" size={18} color={theme.outlineVariant} />
               </TouchableOpacity>
             </TouchableOpacity>
           ))
@@ -502,6 +492,8 @@ function HistoryScreen({ navigation }) {
 }
 
 function ProjectsScreen({ navigation }) {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const [projects, setProjects] = useState([]);
 
   useFocusEffect(
@@ -533,7 +525,7 @@ function ProjectsScreen({ navigation }) {
           <Text style={styles.runButtonText}>Yeni .carbon Dosyası</Text>
         </TouchableOpacity>
         {projects.length === 0 ? (
-          <Text style={{color: COLORS.textSecondary, textAlign: 'center', marginTop: 30}}>Henüz bir proje yok.</Text>
+          <Text style={{color: theme.textSecondary, textAlign: 'center', marginTop: 30}}>Henüz bir proje yok.</Text>
         ) : (
           projects.map(item => (
             <TouchableOpacity 
@@ -541,13 +533,13 @@ function ProjectsScreen({ navigation }) {
               style={styles.historyCard}
               onPress={() => navigation.navigate('Home', { screen: 'Editor', params: { fileId: item.id } })}
             >
-              <MaterialCommunityIcons name="file-code-outline" size={24} color={COLORS.primaryContainer} />
+              <MaterialCommunityIcons name="file-code-outline" size={24} color={theme.primaryContainer} />
               <View style={{ marginLeft: 15, flex: 1 }}>
-                <Text style={{ color: COLORS.onSurface, fontSize: 16 }}>{item.name}</Text>
-                <Text style={{ color: COLORS.textSecondary, fontSize: 12, marginTop: 4 }}>Boyut: {item.size} • {item.date}</Text>
+                <Text style={{ color: theme.onSurface, fontSize: 16 }}>{item.name}</Text>
+                <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 4 }}>Boyut: {item.size} • {item.date}</Text>
               </View>
               <TouchableOpacity onPress={() => handleDelete(item.id)} style={{ padding: 5 }}>
-                <Feather name="trash-2" size={18} color={COLORS.outlineVariant} />
+                <Feather name="trash-2" size={18} color={theme.outlineVariant} />
               </TouchableOpacity>
             </TouchableOpacity>
           ))
@@ -558,44 +550,81 @@ function ProjectsScreen({ navigation }) {
 }
 
 function ProfileScreen({ navigation }) {
+  const { theme, setTheme } = useTheme();
+  const styles = getStyles(theme);
+
+  const themeOptions = [
+    { key: 'dark', color: '#00cc33', label: 'Dark' },
+    { key: 'purple', color: '#B445FF', label: 'Purple' },
+    { key: 'orange', color: '#FF8A00', label: 'Orange' },
+    { key: 'red', color: '#FF0000', label: 'Red' },
+    { key: 'light', color: '#000000', label: 'Light' },
+  ];
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.topBar}>
         <Text style={styles.logoText}>Profil & Ayarlar</Text>
       </View>
       <ScrollView contentContainerStyle={{ padding: 20, alignItems: 'center' }}>
-         <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.surfaceContainerHigh, alignItems: 'center', justifyContent: 'center', marginBottom: 15 }}>
-            <Ionicons name="person" size={40} color={COLORS.primaryContainer} />
+         <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: theme.surfaceContainerHigh, alignItems: 'center', justifyContent: 'center', marginBottom: 15 }}>
+            <Ionicons name="person" size={40} color={theme.primaryContainer} />
          </View>
-         <Text style={{ color: COLORS.onSurface, fontSize: 20, fontWeight: 'bold' }}>Geliştirici</Text>
-         <Text style={{ color: COLORS.textSecondary, fontSize: 14, marginBottom: 30 }}>Free Tier Plan • gemini-2.5-flash</Text>
+         <Text style={{ color: theme.onSurface, fontSize: 20, fontWeight: 'bold' }}>Geliştirici</Text>
+         <Text style={{ color: theme.textSecondary, fontSize: 14, marginBottom: 30 }}>Free Tier Plan • gemini-2.5-flash</Text>
          
          <TouchableOpacity 
-           style={[styles.historyCard, { backgroundColor: '#3B0000', marginBottom: 20 }]}
+           style={[styles.historyCard, { backgroundColor: theme.key === 'dark' ? '#3B0000' : theme.surfaceContainerHigh, marginBottom: 25 }]}
            onPress={() => navigation.navigate('Docs')}
          >
-           <Text style={{ color: '#FF7373', flex: 1, fontWeight: 'bold', fontSize: 16 }}>📚 Teknik Belgeleri Okut (Auto-Doc)</Text>
-           <Ionicons name="sparkles" size={24} color="#FF7373" />
+           <Text style={{ color: theme.key === 'dark' ? '#FF7373' : theme.primary, flex: 1, fontWeight: 'bold', fontSize: 16 }}>📚 Teknik Belgeleri Okut (Auto-Doc)</Text>
+           <Ionicons name="sparkles" size={24} color={theme.key === 'dark' ? '#FF7373' : theme.primary} />
          </TouchableOpacity>
          
-         <View style={styles.historyCard}>
-           <Text style={{ color: COLORS.onSurface, flex: 1 }}>Koyu Tema</Text>
-           <Ionicons name="toggle" size={32} color={COLORS.primaryContainer} />
+         {/* ── Theme Selector ── */}
+         <View style={{ width: '100%', marginBottom: 25 }}>
+           <Text style={{ color: theme.onSurface, fontSize: 13, fontWeight: 'bold', marginBottom: 15, letterSpacing: 1.5, opacity: 0.7 }}>GÖRÜNÜM TEMASI</Text>
+           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+             {themeOptions.map((opt) => (
+               <TouchableOpacity 
+                 key={opt.key}
+                 onPress={() => setTheme(opt.key)}
+                 style={{ 
+                   alignItems: 'center', 
+                   padding: 10, 
+                   borderRadius: 12, 
+                   backgroundColor: theme.key === opt.key ? theme.surfaceContainerHigh : 'transparent',
+                   borderWidth: 1,
+                   borderColor: theme.key === opt.key ? theme.primary : 'transparent',
+                   flex: 1
+                 }}
+               >
+                 <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: opt.color, marginBottom: 8, borderWidth: 1, borderColor: theme.onSurface, opacity: theme.key === opt.key ? 1 : 0.6 }} />
+                 <Text style={{ color: theme.onSurface, fontSize: 10, fontWeight: theme.key === opt.key ? 'bold' : 'normal' }}>{opt.label}</Text>
+               </TouchableOpacity>
+             ))}
+           </View>
          </View>
+
          <View style={styles.historyCard}>
-           <Text style={{ color: COLORS.onSurface, flex: 1 }}>LLM API Anahtarı Değiştir</Text>
-           <Ionicons name="chevron-forward" size={20} color={COLORS.outlineVariant} />
+           <Text style={{ color: theme.onSurface, flex: 1 }}>LLM API Anahtarı Değiştir</Text>
+           <Ionicons name="chevron-forward" size={20} color={theme.outlineVariant} />
          </View>
-         <View style={styles.historyCard}>
-           <Text style={{ color: COLORS.primaryContainer, flex: 1 }}>Bütün Verileri Sil</Text>
-           <Feather name="trash-2" size={18} color={COLORS.primaryContainer} />
-         </View>
+         <TouchableOpacity 
+            style={styles.historyCard}
+            onPress={() => alert("Bellek temizleniyor...")}
+         >
+           <Text style={{ color: theme.primary, flex: 1, fontWeight: 'bold' }}>Bütün Verileri Sil</Text>
+           <Feather name="trash-2" size={18} color={theme.primary} />
+         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
 }
 // ─── Low Level Matrix Screen ──────────────────────────────────────────
 function LowLevelScreen({ route, navigation }) {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const { code } = route.params;
   const [output, setOutput] = useState('');
   const [loading, setLoading] = useState(true);
@@ -638,6 +667,8 @@ function LowLevelScreen({ route, navigation }) {
 
 // ─── Auto-Doc Generation Screen ───────────────────────────────────────
 function DocsScreen({ navigation }) {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -688,11 +719,11 @@ function DocsScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderBottomColor: '#222', backgroundColor: COLORS.surface }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderBottomColor: '#222', backgroundColor: theme.surface }}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 15 }}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.onSurface} />
+          <Ionicons name="arrow-back" size={24} color={theme.onSurface} />
         </TouchableOpacity>
-        <Text style={{ color: COLORS.onSurface, fontSize: 18, fontWeight: 'bold' }}>📚 Belgeler</Text>
+        <Text style={{ color: theme.onSurface, fontSize: 18, fontWeight: 'bold' }}>📚 Belgeler</Text>
       </View>
       <FlatList
         data={docs}
@@ -721,15 +752,15 @@ function DocsScreen({ navigation }) {
                   )}
                 </View>
               ) : (
-                <Text style={{ color: COLORS.onSurface, fontSize: 15, lineHeight: 22 }}>{item.text}</Text>
+                <Text style={{ color: theme.onSurface, fontSize: 15, lineHeight: 22 }}>{item.text}</Text>
               )}
             </View>
         )}
         ListHeaderComponent={loading ? (
           <View style={{ alignItems: 'center', marginTop: 50 }}>
-            <Ionicons name="book-outline" size={48} color={COLORS.primaryContainer} style={{ marginBottom: 10 }} />
-            <Text style={{ color: COLORS.onSurface, fontSize: 16 }}>Döküman Üretiliyor...</Text>
-            <Text style={{ color: COLORS.textSecondary, fontSize: 12, marginTop: 5, textAlign: 'center' }}>AI sistemi Carbon mimarisini tarayıp Türkçe bir el kitabı oluşturuyor.</Text>
+            <Ionicons name="book-outline" size={48} color={theme.primaryContainer} style={{ marginBottom: 10 }} />
+            <Text style={{ color: theme.onSurface, fontSize: 16 }}>Döküman Üretiliyor...</Text>
+            <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 5, textAlign: 'center' }}>AI sistemi Carbon mimarisini tarayıp Türkçe bir el kitabı oluşturuyor.</Text>
           </View>
         ) : null}
       />
@@ -738,6 +769,8 @@ function DocsScreen({ navigation }) {
 }
 // ─── Local IDE (EditorScreen) ──────────────────────────────────────────
 function EditorScreen({ route, navigation }) {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   const fileId = route.params?.fileId;
   const [code, setCode] = useState('');
   const [fileName, setFileName] = useState('');
@@ -788,55 +821,55 @@ function EditorScreen({ route, navigation }) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#0A0A0A' }}>
-      <StatusBar barStyle="light-content" backgroundColor="#0A0A0A" />
-      <View style={{ flexDirection: 'row', alignItems: 'center', padding: 10, borderBottomWidth: 1, borderBottomColor: '#222', backgroundColor: '#131313' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+      <StatusBar barStyle={theme.key === 'light' ? 'dark-content' : 'light-content'} backgroundColor={theme.background} />
+      <View style={{ flexDirection: 'row', alignItems: 'center', padding: 10, borderBottomWidth: 1, borderBottomColor: theme.outlineVariant, backgroundColor: theme.surface }}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 5, marginRight: 10 }}>
-          <Ionicons name="arrow-back" size={24} color="#FFF" />
+          <Ionicons name="arrow-back" size={24} color={theme.onSurface} />
         </TouchableOpacity>
         <TextInput 
-          style={{ flex: 1, color: '#FFF', fontSize: 16, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}
+          style={{ flex: 1, color: theme.onSurface, fontSize: 16, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}
           value={fileName}
           onChangeText={setFileName}
         />
         <TouchableOpacity onPress={handleSave} style={{ marginRight: 15, flexDirection: 'row', alignItems: 'center' }}>
-          <Ionicons name="save-outline" size={20} color="#00FF41" />
-          <Text style={{color: '#00FF41', marginLeft: 5, fontWeight: 'bold'}}>Kaydet</Text>
+          <Ionicons name="save-outline" size={20} color={theme.primary} />
+          <Text style={{color: theme.primary, marginLeft: 5, fontWeight: 'bold'}}>Kaydet</Text>
         </TouchableOpacity>
       </View>
-      <View style={{ flexDirection: 'row', padding: 10, gap: 10, backgroundColor: '#0d0d0d', borderBottomWidth: 1, borderBottomColor: '#222' }}>
+      <View style={{ flexDirection: 'row', padding: 10, gap: 10, backgroundColor: theme.surfaceContainerLow, borderBottomWidth: 1, borderBottomColor: theme.outlineVariant }}>
         <TouchableOpacity 
-          style={[styles.runButton, { flex: 1, justifyContent: 'center' }]}
+          style={[styles.runButton, { flex: 1, justifyContent: 'center', backgroundColor: theme.primaryContainer }]}
           onPress={handleRun}
         >
-           <Ionicons name={isRunning ? "hourglass" : "play"} size={16} color="#FFF" />
-           <Text style={styles.runButtonText}>{isRunning ? "Derleniyor..." : "Çalıştır"}</Text>
+           <Ionicons name={isRunning ? "hourglass" : "play"} size={16} color={theme.onPrimaryContainer} />
+           <Text style={[styles.runButtonText, { color: theme.onPrimaryContainer }]}>{isRunning ? "Derleniyor..." : "Çalıştır"}</Text>
         </TouchableOpacity>
         <TouchableOpacity 
-          style={[styles.runButton, { flex: 1, justifyContent: 'center', backgroundColor: '#003B00' }]}
+          style={[styles.runButton, { flex: 1, justifyContent: 'center', backgroundColor: theme.key === 'dark' ? '#003B00' : theme.surfaceContainerHigh }]}
           onPress={handleASM}
         >
-           <Ionicons name="hardware-chip" size={16} color="#00FF41" />
-           <Text style={[styles.runButtonText, { color: '#00FF41' }]}>Makine Kodu (ASM)</Text>
+           <Ionicons name="hardware-chip" size={16} color={theme.primary} />
+           <Text style={[styles.runButtonText, { color: theme.primary }]}>Makine Kodu (ASM)</Text>
         </TouchableOpacity>
       </View>
       <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
         <TextInput
-          style={{ padding: 15, color: '#D4D4D4', fontSize: 14, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', minHeight: 400 }}
+          style={{ padding: 15, color: theme.onSurface, fontSize: 14, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', minHeight: 400 }}
           value={code}
           onChangeText={setCode}
           multiline
           textAlignVertical="top"
           placeholder="// Kodunuzu buraya yazın..."
-          placeholderTextColor="#444"
+          placeholderTextColor={theme.textSecondary}
           autoCapitalize="none"
           autoCorrect={false}
         />
       </ScrollView>
       {consoleOutput && (
-        <View style={{ padding: 15, backgroundColor: '#1E1E1E', borderTopWidth: 2, borderTopColor: '#00FF41' }}>
-           <Text style={{ color: '#00FF41', fontWeight: 'bold', marginBottom: 5 }}>[STDOUT]:</Text>
-           <Text style={{ color: '#FFF', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>{consoleOutput}</Text>
+        <View style={{ padding: 15, backgroundColor: theme.surfaceContainerHigh, borderTopWidth: 2, borderTopColor: theme.primary }}>
+           <Text style={{ color: theme.primary, fontWeight: 'bold', marginBottom: 5 }}>[STDOUT]:</Text>
+           <Text style={{ color: theme.onSurface, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>{consoleOutput}</Text>
         </View>
       )}
     </SafeAreaView>
@@ -866,7 +899,10 @@ function ProfileStack() {
 }
 
 // ─── Main App ─────────────────────────────────────────────────────────
-export default function App() {
+function RootNavigator() {
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
+
   return (
     <NavigationContainer>
       <Tab.Navigator
@@ -874,25 +910,19 @@ export default function App() {
           headerShown: false,
           tabBarShowLabel: false,
           tabBarStyle: styles.bottomNav,
-          tabBarIcon: ({ focused, color, size }) => {
+          tabBarIcon: ({ focused }) => {
             let iconName;
-
-            if (route.name === 'Home') {
-              iconName = focused ? 'home' : 'home-outline';
-            } else if (route.name === 'History') {
-              iconName = focused ? 'time' : 'time-outline';
-            } else if (route.name === 'Projects') {
-              iconName = focused ? 'folder' : 'folder-outline';
-            } else if (route.name === 'Profile') {
-              iconName = focused ? 'person' : 'person-outline';
-            }
+            if (route.name === 'Home') iconName = focused ? 'home' : 'home-outline';
+            else if (route.name === 'History') iconName = focused ? 'time' : 'time-outline';
+            else if (route.name === 'Projects') iconName = focused ? 'folder' : 'folder-outline';
+            else if (route.name === 'Profile') iconName = focused ? 'person' : 'person-outline';
 
             return (
               <View style={focused ? styles.navActive : styles.navItem}>
                 <Ionicons
                   name={iconName}
                   size={22}
-                  color={focused ? "#FFFFFF" : COLORS.outlineVariant}
+                  color={focused ? "#FFFFFF" : theme.outlineVariant}
                 />
               </View>
             );
@@ -908,11 +938,19 @@ export default function App() {
   );
 }
 
+export default function App() {
+  return (
+    <ThemeProvider>
+      <RootNavigator />
+    </ThemeProvider>
+  );
+}
+
 // ─── Styles ───────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
+const getStyles = (theme) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: theme.background,
   },
   scrollView: {
     flex: 1,
@@ -922,12 +960,12 @@ const styles = StyleSheet.create({
   },
   placeholderContainer: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: theme.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
   placeholderText: {
-    color: COLORS.onSurfaceVariant,
+    color: theme.onSurfaceVariant,
     fontSize: 18,
     ...FONTS.medium,
   },
@@ -947,7 +985,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   logoText: {
-    color: COLORS.onSurface,
+    color: theme.onSurface,
     fontSize: 14,
     letterSpacing: 2,
     ...FONTS.bold,
@@ -969,14 +1007,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.surfaceContainerLow,
-    backgroundColor: COLORS.surface,
+    borderBottomColor: theme.surfaceContainerLow,
+    backgroundColor: theme.surface,
   },
   chatBackButton: {
     padding: 8,
   },
   chatTitle: {
-    color: COLORS.onSurface,
+    color: theme.onSurface,
     fontSize: 16,
     ...FONTS.semibold,
   },
@@ -988,25 +1026,25 @@ const styles = StyleSheet.create({
   },
   userBubble: {
     alignSelf: 'flex-end',
-    backgroundColor: COLORS.primaryContainer,
+    backgroundColor: theme.primaryContainer,
     borderBottomRightRadius: 4,
   },
   aiBubble: {
     alignSelf: 'flex-start',
-    backgroundColor: COLORS.surfaceContainerLow,
+    backgroundColor: theme.surfaceContainerLow,
     borderWidth: 1,
-    borderColor: COLORS.surfaceContainerHigh,
+    borderColor: theme.surfaceContainerHigh,
   },
   aiBubbleThinking: {
     alignSelf: 'flex-start',
-    backgroundColor: COLORS.surfaceContainerLow,
+    backgroundColor: theme.surfaceContainerLow,
     borderWidth: 1,
-    borderColor: COLORS.surfaceContainerHigh,
+    borderColor: theme.surfaceContainerHigh,
     width: 120,
     alignItems: 'center'
   },
   messageText: {
-    color: COLORS.onSurface,
+    color: theme.onSurface,
     fontSize: 15,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     lineHeight: 22,
@@ -1038,7 +1076,7 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 6,
     borderLeftWidth: 3,
-    borderLeftColor: COLORS.primaryContainer
+    borderLeftColor: theme.primaryContainer
   },
   consoleHeader: {
     color: '#666',
@@ -1054,13 +1092,13 @@ const styles = StyleSheet.create({
   historyCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surfaceContainerLow,
+    backgroundColor: theme.surfaceContainerLow,
     padding: 15,
     borderRadius: 12,
     marginBottom: 10,
     width: '100%',
     borderWidth: 1,
-    borderColor: COLORS.surfaceContainerHigh,
+    borderColor: theme.surfaceContainerHigh,
   },
 
   // ── Status Dot ──
@@ -1073,7 +1111,7 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: COLORS.primaryContainer,
+    backgroundColor: theme.primaryContainer,
   },
   statusGlow: {
     position: 'absolute',
@@ -1081,10 +1119,10 @@ const styles = StyleSheet.create({
     width: 15,
     height: 15,
     borderRadius: 7.5,
-    backgroundColor: COLORS.primaryContainer,
+    backgroundColor: theme.primaryContainer,
   },
   statusText: {
-    color: COLORS.primaryContainer,
+    color: theme.primaryContainer,
     fontSize: 10,
     letterSpacing: 1.5,
     ...FONTS.bold,
@@ -1110,7 +1148,7 @@ const styles = StyleSheet.create({
     borderRadius: 110,
   },
   heroTitle: {
-    color: COLORS.onSurface,
+    color: theme.onSurface,
     fontSize: 38,
     textAlign: 'center',
     lineHeight: 44,
@@ -1119,7 +1157,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   heroSubtitle: {
-    color: COLORS.textSecondary,
+    color: theme.textSecondary,
     fontSize: 14,
     textAlign: 'center',
     marginTop: 12,
@@ -1134,14 +1172,14 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   actionCard: {
-    backgroundColor: COLORS.surfaceContainerHigh,
+    backgroundColor: theme.surfaceContainerHigh,
     borderRadius: 12,
     overflow: 'hidden',
     flexDirection: 'row',
   },
   actionCardBorder: {
     width: 3,
-    backgroundColor: COLORS.primaryContainer,
+    backgroundColor: theme.primaryContainer,
   },
   actionCardContent: {
     flex: 1,
@@ -1152,14 +1190,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   actionCategory: {
-    color: COLORS.primaryContainer,
+    color: theme.primaryContainer,
     fontSize: 10,
     letterSpacing: 2,
     marginBottom: 4,
     ...FONTS.bold,
   },
   actionLabel: {
-    color: COLORS.onSurface,
+    color: theme.onSurface,
     fontSize: 16,
     ...FONTS.semibold,
   },
@@ -1167,7 +1205,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 8,
-    backgroundColor: COLORS.surfaceContainerHighest,
+    backgroundColor: theme.surfaceContainerHighest,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1177,12 +1215,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 8,
     paddingTop: 12,
-    backgroundColor: COLORS.background,
+    backgroundColor: theme.background,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surfaceContainerLow,
+    backgroundColor: theme.surfaceContainerLow,
     borderRadius: 12,
     paddingLeft: 16,
     paddingRight: 6,
@@ -1190,7 +1228,7 @@ const styles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
-    color: COLORS.onSurface,
+    color: theme.onSurface,
     fontSize: 14,
     ...FONTS.regular,
   },
@@ -1198,16 +1236,16 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: COLORS.primaryContainer,
+    backgroundColor: theme.primaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   // ── Bottom Nav ──
   bottomNav: {
-    backgroundColor: COLORS.background,
+    backgroundColor: theme.background,
     borderTopWidth: 1,
-    borderTopColor: COLORS.surfaceContainerLow,
+    borderTopColor: theme.surfaceContainerLow,
     height: 60,
     paddingTop: 8,
     paddingBottom: 8,
@@ -1228,7 +1266,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.primaryContainer,
+    backgroundColor: theme.primaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
   },
