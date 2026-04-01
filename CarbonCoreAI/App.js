@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,11 +10,15 @@ import {
   Animated,
   Dimensions,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  FlatList,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 const { width } = Dimensions.get('window');
 
@@ -138,11 +142,11 @@ function StatusDot() {
 }
 
 // ─── Quick Action Card ────────────────────────────────────────────────
-function ActionCard({ label, category, icon, iconType = 'ionicons' }) {
+function ActionCard({ label, category, icon, iconType = 'ionicons', onPress }) {
   const IconComponent = iconType === 'material' ? MaterialCommunityIcons : Ionicons;
   
   return (
-    <TouchableOpacity style={styles.actionCard} activeOpacity={0.7}>
+    <TouchableOpacity style={styles.actionCard} activeOpacity={0.7} onPress={onPress}>
       <View style={styles.actionCardBorder} />
       <View style={styles.actionCardContent}>
         <View>
@@ -157,8 +161,92 @@ function ActionCard({ label, category, icon, iconType = 'ionicons' }) {
   );
 }
 
+// ─── Chat Input Component ──────────────────────────────────────────────
+function ChatInput({ onSend }) {
+  const [text, setText] = useState('');
+
+  const handleSend = () => {
+    if (text.trim().length > 0) {
+      onSend(text.trim());
+      setText('');
+    }
+  };
+
+  return (
+    <View style={styles.inputSection}>
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.textInput}
+          placeholder="Carbon'a bir şey sor..."
+          placeholderTextColor={COLORS.outlineVariant}
+          value={text}
+          onChangeText={setText}
+          onSubmitEditing={handleSend}
+        />
+        <TouchableOpacity style={styles.sendButton} activeOpacity={0.8} onPress={handleSend}>
+          <Ionicons name="arrow-up" size={20} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+// ─── Chat Screen ───────────────────────────────────────────────────────
+function ChatScreen({ navigation }) {
+  const [messages, setMessages] = useState([
+    { id: '1', text: 'Merhaba! Ben Carbon Core AI. Size nasıl yardımcı olabilirim?', isUser: false },
+  ]);
+
+  const handleSend = (text) => {
+    const newMessage = { id: Date.now().toString(), text, isUser: true };
+    setMessages((prev) => [...prev, newMessage]);
+
+    // Mock AI response for now
+    setTimeout(() => {
+      setMessages((prev) => [
+        ...prev,
+        { id: (Date.now() + 1).toString(), text: 'Bu bir mock AI cevabıdır. Henüz LLM bağlı değil.', isUser: false },
+      ]);
+    }, 1000);
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* ── Top Bar Minimal for Chat ── */}
+      <View style={styles.chatTopBar}>
+        <TouchableOpacity style={styles.chatBackButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={COLORS.onSurface} />
+        </TouchableOpacity>
+        <Text style={styles.chatTitle}>Yeni Sohbet</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <FlatList
+          data={messages}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ padding: 20, paddingBottom: 10 }}
+          renderItem={({ item }) => (
+            <View style={[
+              styles.messageBubble, 
+              item.isUser ? styles.userBubble : styles.aiBubble
+            ]}>
+              <Text style={styles.messageText}>{item.text}</Text>
+            </View>
+          )}
+        />
+        <ChatInput onSend={handleSend} />
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+
 // ─── Home Screen ───────────────────────────────────────────────────────
-function HomeScreen() {
+function HomeScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.background} />
@@ -203,31 +291,32 @@ function HomeScreen() {
             label="Yeni Sohbet"
             icon="chatbubble"
             iconType="ionicons"
+            onPress={() => navigation.navigate('Chat')}
           />
           <ActionCard
             category="GELİŞTİRME"
             label="Kod Üret"
             icon="code-braces-box"
             iconType="material"
+            onPress={() => navigation.navigate('Chat')}
           />
           <ActionCard
             category="VERİ"
             label="Analiz"
             icon="chart-bar"
             iconType="material"
+            onPress={() => navigation.navigate('Chat')}
           />
         </View>
       </ScrollView>
 
-      {/* ── Chat Input ── */}
+      {/* ── Chat Input acts as shortcut ── */}
       <View style={styles.inputSection}>
         <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.textInput}
-            placeholder="Carbon'a bir şey sor..."
-            placeholderTextColor={COLORS.outlineVariant}
-          />
-          <TouchableOpacity style={styles.sendButton} activeOpacity={0.8}>
+          <Text style={[styles.textInput, { color: COLORS.outlineVariant, paddingTop: 14 }]} onPress={() => navigation.navigate('Chat')}>
+            Carbon'a bir şey sor...
+          </Text>
+          <TouchableOpacity style={styles.sendButton} activeOpacity={0.8} onPress={() => navigation.navigate('Chat')}>
             <Ionicons name="arrow-up" size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
@@ -262,6 +351,16 @@ function ProfileScreen() {
 }
 
 const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
+
+function HomeStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="HomeMain" component={HomeScreen} />
+      <Stack.Screen name="Chat" component={ChatScreen} />
+    </Stack.Navigator>
+  );
+}
 
 // ─── Main App ─────────────────────────────────────────────────────────
 export default function App() {
@@ -297,7 +396,7 @@ export default function App() {
           },
         })}
       >
-        <Tab.Screen name="Home" component={HomeScreen} />
+        <Tab.Screen name="Home" component={HomeStack} />
         <Tab.Screen name="History" component={HistoryScreen} />
         <Tab.Screen name="Projects" component={ProjectsScreen} />
         <Tab.Screen name="Profile" component={ProfileScreen} />
@@ -357,6 +456,48 @@ const styles = StyleSheet.create({
   },
   settingsButton: {
     padding: 4,
+  },
+
+  // ── Chat Elements ──
+  chatTopBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.surfaceContainerLow,
+    backgroundColor: COLORS.surface,
+  },
+  chatBackButton: {
+    padding: 8,
+  },
+  chatTitle: {
+    color: COLORS.onSurface,
+    fontSize: 16,
+    ...FONTS.semibold,
+  },
+  messageBubble: {
+    maxWidth: '85%',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  userBubble: {
+    alignSelf: 'flex-end',
+    backgroundColor: COLORS.primaryContainer,
+    borderBottomRightRadius: 4,
+  },
+  aiBubble: {
+    alignSelf: 'flex-start',
+    backgroundColor: COLORS.surfaceContainerHigh,
+    borderBottomLeftRadius: 4,
+  },
+  messageText: {
+    color: COLORS.onSurface,
+    fontSize: 15,
+    lineHeight: 22,
+    ...FONTS.regular,
   },
 
   // ── Status Dot ──
@@ -473,6 +614,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 8,
     paddingTop: 12,
+    backgroundColor: COLORS.background,
   },
   inputContainer: {
     flexDirection: 'row',

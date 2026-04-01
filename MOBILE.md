@@ -18,9 +18,9 @@
 
 | Metric            | Value |
 | ----------------- | ----- |
-| Total Iterations  | 2     |
-| Total Weight (kg) | 20    |
-| Total Time (min)  | 25    |
+| Total Iterations  | 3     |
+| Total Weight (kg) | 30    |
+| Total Time (min)  | 40    |
 | Failed Attempts   | 0     |
 
 ---
@@ -86,34 +86,39 @@ Planı uygula. (Faz 1 - Iteration 2: Navigation)
 
 **Commit:** `[NAIM: Carbon Core AI] Added Multi-Screen Navigation - 15kg`
 
-  ***
+---
 
 ### 🏋️ Iteration 3
 
 | Field     | Value |
 | --------- | ----- |
-| Feature   |       |
-| Weight    |       |
-| Tool Used |       |
-| Time      |       |
-| Attempts  |       |
-| Status    |       |
+| Feature   | `Sohbet Ekranı: Text Input → Output` |
+| Weight    | `10 kg` |
+| Tool Used | `Antigravity` |
+| Time      | `15 min` |
+| Attempts  | `1` |
+| Status    | ✅ Success |
 
 **Prompt given to AI:**
 
 ```
-
+Planı uygula. (Faz 1 - Iteration 3: Chat Screen)
 ```
 
 **What happened:**
 
-- **Screenshot:**
+- `@react-navigation/native-stack` paketi kurularak `HomeStack` eklendi.
+- Uygulama içinde Stack -> Tab hiyerarşisi sağlandı, böylece hem navigation bar korundu hem de "Yeni Sohbet" ekranı push yapılarak açıldı.
+- `ChatScreen` bileşeni eklendi:
+  - Geri butonu.
+  - Scroll edilebilir mesaj bubble listesi (`FlatList`).
+  - Klavye duyarlı (`KeyboardAvoidingView`) yeni sohbet giriş `ChatInput` bileşeni.
+- Ana ekrandaki "Yeni Sohbet", "Kod Üret", "Analiz" veya input'a basınca sohbet ekranına geçiş yapılması yönlendirildi.
+- Kullanıcı girişine cevap gelen statik mock AI akışı oluşturuldu.
 
-  **Commit:**
+**Screenshot:** `assets/iteration3_chat_screen.png`
 
-  ***
-
-_(Copy this block for each new iteration)_
+**Commit:** `[NAIM: Carbon Core AI] Added Chat Screen and Message Flow - 10kg`
 
 ---
 
