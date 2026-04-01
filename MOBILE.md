@@ -16,12 +16,16 @@
 
 ## 📊 Scoreboard
 
-| Metric            | Value |
-| ----------------- | ----- |
-| Total Iterations  | 7     |
-| Total Weight (kg) | 115   |
-| Total Time (min)  | 100   |
-| Failed Attempts   | 0     |
+| Feature | Score | Status |
+| :--- | :--- | :--- |
+| **P1: Basic Chat & AST Parser** | 10 kg | 🟢 Completed |
+| **P2: Highlighter & Syntax Colors** | 15 kg | 🟢 Completed |
+| **P3: Interpreter Bridge (API)** | 40 kg | 🟢 Completed |
+| **P4: Low-Level (x86/ARM) View** | 20 kg | 🟢 Completed |
+| **P5: Auto-Doc Generation** | 30 kg | 🟢 Completed |
+| **P6: Turkish Grammar Oracle** | 25 kg | ⚪ Pending |
+
+**TOTAL CURRENT NAIM SCORE: 145 KG**
 
 ---
 
@@ -242,6 +246,37 @@ analiz ekranı yeni bir page olmalı. Matrix yeşili bir tasarıma sahip olmalı
 **Screenshot:** `assets/phase4_matrix_view_loaded.png`
 
 **Commit:** `[NAIM: Carbon Core AI] Added Phase 4 Low-Level Matrix View - 20kg`
+
+---
+
+### 🏋️ Iteration 8
+
+| Field     | Value |
+| --------- | ----- |
+| Feature   | `Auto-Doc Generation & Interactive Doc execution` |
+| Weight    | `30 kg` |
+| Tool Used | `Antigravity` |
+| Time      | `15 min` |
+| Attempts  | `1` |
+| Status    | ✅ Success |
+
+**Prompt given to AI:**
+
+```
+auto doc sistemini yapalım
+```
+
+**What happened:**
+
+- `ProfileScreen` içine dev bir `📚 Teknik Belgeleri Okut (Auto-Doc)` butonu entegre edildi.
+- `HomeStack`'in yanına yepyeni bir `DocsScreen` eklendi.
+- `LLMService.js` içerisinde bulunan özel sistem promptu ile `generateAutoDoc()` fonksiyonu yazıldı. Bu prompt anlık güncel `grammarSpec` ile Gemini üzerinden harika bir Türkçe "Carbon El Kitabı" üretiyor.
+- Aynen `ChatScreen`'de olduğu gibi `DocsScreen`'e de Regex ile metin/kod parçalayıcı eklendi. Böylece dokümanı statik bir metin olarak değil, içinde "▶ Çalıştır (Interaktif)" butonları barındıran canlı bir defter olarak görüntülüyoruz.
+- Sanal makinede doğrudan koda müdahale edip dökümanın içindeyken o kodun sonucunu gösteren bir UX gerçekleştirildi.
+
+**Screenshot:** `assets/phase5_docs_run_code.png`
+
+**Commit:** `[NAIM: Carbon Core AI] Added Phase 5 Auto-Doc Generation - 30kg`
 
 ---
 

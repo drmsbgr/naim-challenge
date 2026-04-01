@@ -20,7 +20,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import CarbonHighlighter from './components/CarbonHighlighter';
-import { sendMessageToLLM, initChat, simulateRuntime, simulateLowLevel } from './services/LLMService';
+import { sendMessageToLLM, initChat, simulateRuntime, simulateLowLevel, generateAutoDoc } from './services/LLMService';
 
 const { width } = Dimensions.get('window');
 
@@ -476,7 +476,7 @@ function ProjectsScreen() {
   );
 }
 
-function ProfileScreen() {
+function ProfileScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.topBar}>
@@ -488,6 +488,14 @@ function ProfileScreen() {
          </View>
          <Text style={{ color: COLORS.onSurface, fontSize: 20, fontWeight: 'bold' }}>Geliştirici</Text>
          <Text style={{ color: COLORS.textSecondary, fontSize: 14, marginBottom: 30 }}>Free Tier Plan • gemini-2.5-flash</Text>
+         
+         <TouchableOpacity 
+           style={[styles.historyCard, { backgroundColor: '#3B0000', marginBottom: 20 }]}
+           onPress={() => navigation.navigate('Docs')}
+         >
+           <Text style={{ color: '#FF7373', flex: 1, fontWeight: 'bold', fontSize: 16 }}>📚 Teknik Belgeleri Okut (Auto-Doc)</Text>
+           <Ionicons name="sparkles" size={24} color="#FF7373" />
+         </TouchableOpacity>
          
          <View style={styles.historyCard}>
            <Text style={{ color: COLORS.onSurface, flex: 1 }}>Koyu Tema</Text>
@@ -546,6 +554,107 @@ function LowLevelScreen({ route, navigation }) {
     </SafeAreaView>
   );
 }
+
+// ─── Auto-Doc Generation Screen ───────────────────────────────────────
+function DocsScreen({ navigation }) {
+  const [docs, setDocs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDoc = async () => {
+      const responseText = await generateAutoDoc();
+      const regex = /```(?:carbon)?\s*([\s\S]*?)```/gi;
+      let parts = [];
+      let lastIndex = 0;
+      let match;
+
+      while ((match = regex.exec(responseText)) !== null) {
+        if (match.index > lastIndex) {
+          const textPart = responseText.substring(lastIndex, match.index).trim();
+          if (textPart) parts.push({ text: textPart, isCode: false });
+        }
+        const codePart = match[1].trim();
+        if (codePart) parts.push({ text: codePart, isCode: true });
+        lastIndex = regex.lastIndex;
+      }
+      
+      if (lastIndex < responseText.length) {
+        const textPart = responseText.substring(lastIndex).trim();
+        if (textPart) parts.push({ text: textPart, isCode: false });
+      }
+      if (parts.length === 0) {
+        parts.push({ text: responseText.trim(), isCode: false });
+      }
+
+      const generatedDocs = parts.map((part, index) => ({
+        ...part,
+        id: index.toString(),
+        isRunning: false,
+        consoleOutput: null
+      }));
+
+      setDocs(generatedDocs);
+      setLoading(false);
+    };
+    fetchDoc();
+  }, []);
+
+  const handleRunCode = async (id, code) => {
+    setDocs(prev => prev.map(m => m.id === id ? { ...m, isRunning: true } : m));
+    const result = await simulateRuntime(code);
+    setDocs(prev => prev.map(m => m.id === id ? { ...m, isRunning: false, consoleOutput: result } : m));
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderBottomColor: '#222', backgroundColor: COLORS.surface }}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginRight: 15 }}>
+          <Ionicons name="arrow-back" size={24} color={COLORS.onSurface} />
+        </TouchableOpacity>
+        <Text style={{ color: COLORS.onSurface, fontSize: 18, fontWeight: 'bold' }}>📚 Belgeler</Text>
+      </View>
+      <FlatList
+        data={docs}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{ padding: 20 }}
+        renderItem={({ item }) => (
+            <View style={{ marginBottom: 20 }}>
+              {item.isCode ? (
+                <View style={{ backgroundColor: '#1A1A1A', borderRadius: 8, padding: 15, borderWidth: 1, borderColor: '#333' }}>
+                  <CarbonHighlighter code={item.text} />
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 15, paddingTop: 15, borderTopWidth: 1, borderTopColor: '#333' }}>
+                    <TouchableOpacity 
+                      style={styles.runButton}
+                      onPress={() => handleRunCode(item.id, item.text)}
+                      disabled={item.isRunning}
+                    >
+                      <Ionicons name={item.isRunning ? "hourglass" : "play"} size={14} color="#FFF" />
+                      <Text style={styles.runButtonText}>{item.isRunning ? "Çalıştırılıyor..." : "Çalıştır (Interaktif)"}</Text>
+                    </TouchableOpacity>
+                  </View>
+                  {item.consoleOutput && (
+                    <View style={styles.consoleWrapper}>
+                      <Text style={styles.consoleHeader}>--- Output ---</Text>
+                      <Text style={styles.consoleOutput}>{item.consoleOutput}</Text>
+                    </View>
+                  )}
+                </View>
+              ) : (
+                <Text style={{ color: COLORS.onSurface, fontSize: 15, lineHeight: 22 }}>{item.text}</Text>
+              )}
+            </View>
+        )}
+        ListHeaderComponent={loading ? (
+          <View style={{ alignItems: 'center', marginTop: 50 }}>
+            <Ionicons name="book-outline" size={48} color={COLORS.primaryContainer} style={{ marginBottom: 10 }} />
+            <Text style={{ color: COLORS.onSurface, fontSize: 16 }}>Döküman Üretiliyor...</Text>
+            <Text style={{ color: COLORS.textSecondary, fontSize: 12, marginTop: 5, textAlign: 'center' }}>AI sistemi Carbon mimarisini tarayıp Türkçe bir el kitabı oluşturuyor.</Text>
+          </View>
+        ) : null}
+      />
+    </SafeAreaView>
+  );
+}
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
@@ -559,6 +668,15 @@ function HomeStack() {
   );
 }
 
+function ProfileStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="ProfileMain" component={ProfileScreen} />
+      <Stack.Screen name="Docs" component={DocsScreen} />
+    </Stack.Navigator>
+  );
+}
+
 // ─── Main App ─────────────────────────────────────────────────────────
 export default function App() {
   return (
@@ -568,7 +686,7 @@ export default function App() {
           headerShown: false,
           tabBarShowLabel: false,
           tabBarStyle: styles.bottomNav,
-          tabBarIcon: ({ focused }) => {
+          tabBarIcon: ({ focused, color, size }) => {
             let iconName;
 
             if (route.name === 'Home') {
@@ -596,7 +714,7 @@ export default function App() {
         <Tab.Screen name="Home" component={HomeStack} />
         <Tab.Screen name="History" component={HistoryScreen} />
         <Tab.Screen name="Projects" component={ProjectsScreen} />
-        <Tab.Screen name="Profile" component={ProfileScreen} />
+        <Tab.Screen name="Profile" component={ProfileStack} />
       </Tab.Navigator>
     </NavigationContainer>
   );

@@ -88,3 +88,24 @@ Lütfen SADECE assembly çıktısını ver, başka hiçbir Türkçe kelime veya 
     return "0xDEADBEEF DISASSEMBLY FAILED: " + error.message;
   }
 };
+
+export const generateAutoDoc = async () => {
+  try {
+    const docModel = genAI.getGenerativeModel({ 
+      model: "gemini-2.5-flash",
+      systemInstruction: `Sen CarbonCoreAI sistemini anlatan baş dökümantasyon mühendisisin. GÖREVİN: Carbon programlama dilinin detaylı teknik mimarisini, veri tiplerini ve fonksiyon çağrılarını anlatan geniş bir belgesel üretmek.
+Şu kurallara uy:
+1. Türkçe dilinde, çok teknik ama anlaşılır bir rehber yaz.
+2. Bolca Markdown başlığı, listeler ve vurgular kullan.
+3. Aralara mutlaka çeşitli \`\`\`carbon ... \`\`\` formatında örnek kodlar serpiştir (örneğin döngü nasıl yazılır, bir sayı dizisi nasıl sıralanır vb).`
+    });
+
+    const runPrompt = `CarbonCoreAI ve Carbon Dilinin Resmi Eğitim Dökümanını (Tutorial & Reference) üret. Kurallara (grammarSpec) uygun olarak ${grammarSpec} bilgisini de sentezle. Lütfen oldukça uzun ve detaylı olsun.`;
+
+    const result = await docModel.generateContent(runPrompt);
+    const response = await result.response;
+    return response.text().trim();
+  } catch (error) {
+    return "# Döküman Oluşturulamadı\n\n[Hata]: " + error.message;
+  }
+};
